@@ -60,37 +60,15 @@ chmod +x install.sh
 sudo ./install.sh
 ```
 
-Uninstall:
+	Binary: /usr/local/bin/fittsmon-gui
+	Man page: /usr/local/share/man/man1/fittsmon-gui.1.gz
+	Desktop file: /usr/local/share/applications/fittsmon-gui.desktop
+	Icon: /usr/local/share/icons/hicolor/scalable/apps/fittsmon-gui.svg
+	Uninstall:
 
 ```bash
 sudo ./uninstall.sh
 ```
-
-## Configuration
-
-User configuration is saved to `~/.config/fittsmon/fittsmonrc`.
-A minimal example (pseudo-INI) might look like:
-
-```
-[hotedges]
-top-left = show-menu
-top-right = none
-
-[general]
-timeout = 200
-```
-
-Adjust settings after running the GUI; actual keys depend on `fittsmon` daemon configuration.
-
-## Troubleshooting
-
-- If the GUI fails to start, ensure GTK bindings are installed (see Prerequisites).
-- Permission errors when installing: use `sudo` for `install.sh`.
-- If icons or desktop entries don't show, run `update-icon-caches` or `gtk-update-icon-cache` per your distro.
-
-## Screenshots
-
-There is a sample screenshot in `images/menu-800.jpg` showing the menu UI.
 
 ## Contact
 
