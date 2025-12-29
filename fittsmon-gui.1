@@ -1,0 +1,102 @@
+.TH FITTSMON-GUI 1 "January 2026" "fittsmon-gui 0.0.1" "User Commands"
+.SH NAME
+fittsmon-gui \- Simple graphical configuration tool for `fittsmon`.
+
+.SH SYNOPSIS
+.B fittsmon-gui
+
+.SH DESCRIPTION
+.B fittsmon-gui
+is a simple graphical user interface (GUI) for configuring screen corner hotspots. It provides an easy way for non-technical users to map mouse events (clicks, wheel scrolling, mouse enter/leave) in screen corners to shell commands.
+The GUI automatically detects all connected monitors and allows per-monitor, per-zone, and per-event command configuration.
+
+.SH REQUIREMENTS
+.B fittsmon-gui
+requires:
+.RS
+.IP \(bu 2
+Python 3.6 or higher
+.IP \(bu 2
+PyGObject (GTK 3 bindings)
+.IP \(bu 2
+fittsmon installed
+.IP \(bu 2
+xrandr (for monitor detection)
+.RE
+
+.SH CONFIGURATION
+All configuration is stored in:
+.RS
+.B ~/.config/fittsmon/fittsmonrc
+.RE
+
+.SH USAGE
+
+Start the GUI:
+.RS
+.B fittsmon-gui
+.RE
+
+.RS
+.IP \(bu 2
+Select a monitor from the dropdown.
+.IP \(bu 2
+Select a zone (corner/edge).
+.IP \(bu 2
+Select an event to configure.
+.IP \(bu 2
+Type a shell command in the text field (auto-saves).
+.IP \(bu 2
+Click "Test" to execute the command immediately.
+.IP \(bu 2
+Click "Save" to write changes to disk.
+.IP \(bu 2
+Click "Restart" to reload the 'fittsmon' daemon.
+.RE
+
+.SH BUTTONS
+
+.TP
+.B Test
+Execute the current command immediately to verify it works
+
+.TP
+.B Edit File
+Open the configuration file in your default text editor (geany, gedit, etc.)
+
+.TP
+.B Save
+Write all changes to the configuration file
+
+.TP
+.B Restart
+Kill and restart the 'fittsmon' daemon to activate changes
+
+.SH CONFLICT RESOLUTION
+
+The GUI prevents conflicting wheel event configurations:
+.RS
+.IP \(bu 2
+Only ONE of WheelUp/WheelUpOnce can be set per zone
+.IP \(bu 2
+Only ONE of WheelDown/WheelDownOnce can be set per zone
+.IP \(bu 2
+Enter and Leave can be used together (they are opposite events)
+.IP \(bu 2
+Button events can coexist with any other events
+.RE
+
+When a conflict is detected, the GUI shows a warning and provides a "Clear Conflict" button.
+
+.SH SEE ALSO
+.BR fittsmon (1)
+
+.SH BUGS
+Report bugs to: https://github.com/musqz/fittsmon
+
+.SH AUTHOR
+Created with askcodi account (paid).
+
+.SH LICENSE
+GNU General Public License v2.0 or later
+.RE
