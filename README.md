@@ -45,6 +45,14 @@ python3 fittsmon-gui.py
 sudo ./uninstall.sh
 ```
 
+---
+
+[Install fitssmon](https://github.com/musqz/fittsmon.git)
+
+```
+git clone https://github.com/musqz/fittsmon.git
+cd fittsmon
+```
 
 ## License & Contact
 
