@@ -22,12 +22,6 @@ python3 fittsmon-gui.py
 ./install.sh
 ```
 
-## License & Contact
-
-This project is released under the MIT License. See `LICENSE` for details.
-
-Author: musqz — linuxbirdtweets@duck.com
-
 ## Prerequisites
 
 - Python 3.8+ (or your distribution's default Python 3)
@@ -70,7 +64,9 @@ sudo ./install.sh
 sudo ./uninstall.sh
 ```
 
-## Contact
 
-Report issues or questions via GitHub issues, or email linuxbirdtweets@duck.com.
+## License & Contact
 
+This project is released under the MIT License. See `LICENSE` for details.
+
+musqz — linuxbirdtweets@duck.com
