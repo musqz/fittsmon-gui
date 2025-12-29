@@ -16,49 +16,30 @@ Lightweight GUI for FittsMon — captures mouse events on configurable hot edges
 python3 fittsmon-gui.py
 ```
 
-- To install helper pieces (icons, desktop files), run:
+## Install
 
 ```bash
 ./install.sh
 ```
 
-## Prerequisites
+- Binary: /usr/local/bin/fittsmon-gui
+- Man page: /usr/local/share/man/man1/fittsmon-gui.1.gz
+- Desktop file: /usr/local/share/applications/fittsmon-gui.desktop
+- Icon: /usr/local/share/icons/hicolor/scalable/apps/fittsmon-gui.svg
 
-- Python 3.8+ (or your distribution's default Python 3)
-- GTK / PyGObject runtime. On Debian/Ubuntu you can install with:
 
-```bash
-sudo apt update
-sudo apt install python3-gi gir1.2-gtk-3.0
-# or on Fedora:
-sudo dnf install python3-gobject gtk3
-```
-
-If you prefer, run from source; system packages are more reliable than `pip` for GTK bindings.
-
-## Install and Run (copy-paste)
-
-Run from source (no install):
+## Install with prefix
 
 ```bash
-chmod +x fittsmon-gui.py
-./fittsmon-gui.py
-# or
-python3 fittsmon-gui.py
+./install.sh PREFIX=/usr
 ```
 
-Install system-wide (copies files to `$PREFIX`, default `/usr/local`):
+- Binary: /usr/bin/fittsmon-gui
+- Man page: /usr/share/man/man1/fittsmon-gui.1.gz
+- Desktop file: /usr/share/applications/fittsmon-gui.desktop
+- Icon: /usr/share/icons/hicolor/scalable/apps/fittsmon-gui.svg
 
-```bash
-chmod +x install.sh
-sudo ./install.sh
-```
-
-	Binary: /usr/local/bin/fittsmon-gui
-	Man page: /usr/local/share/man/man1/fittsmon-gui.1.gz
-	Desktop file: /usr/local/share/applications/fittsmon-gui.desktop
-	Icon: /usr/local/share/icons/hicolor/scalable/apps/fittsmon-gui.svg
-	Uninstall:
+## Uninstall:
 
 ```bash
 sudo ./uninstall.sh
