@@ -589,6 +589,12 @@ class FittsmonGUI:
         self.window.set_position(Gtk.WindowPosition.CENTER)
         self.window.connect("destroy", Gtk.main_quit)
         
+        # Set window icon
+        try:
+            self.window.set_icon_name("input-mouse")
+        except:
+            pass
+        
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
         main_box.set_margin_top(15)
         main_box.set_margin_bottom(15)
