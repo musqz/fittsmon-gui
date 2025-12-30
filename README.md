@@ -1,4 +1,7 @@
 ![Menu preview](images/menu-800.jpg)
+
+![Overview](images/overview.jpg){width 550 pix}
+
 # fittsmon-gui
 
 Lightweight GTK3 GUI to configure `fittsmon` screen-corner hotspots.
