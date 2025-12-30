@@ -5,11 +5,13 @@ fittsmon Configuration GUI - Simple Edition
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GLib, Gdk
+gi.require_version('Gdk', '3.0')
+from gi.repository import Gtk, Gdk, GLib
 import subprocess
 import os
 import time
 from pathlib import Path
+
 
 class ConfigParser:
     """Custom config parser that preserves case"""
@@ -110,6 +112,228 @@ class ConfigParser:
         if section in self.data and option in self.data[section]:
             del self.data[section][option]
 
+
+class HotspotWindow(Gtk.Window):
+    """Individual hotspot detail window"""
+    
+    ZONE_INFO = {
+        'TopLeft': {'pos': (0, 0), 'emoji': '↖️'},
+        'TopCenter': {'pos': (0.5, 0), 'emoji': '⬆️'},
+        'TopRight': {'pos': (1, 0), 'emoji': '↗️'},
+        'Left': {'pos': (0, 0.5), 'emoji': '⬅️'},
+        'Right': {'pos': (1, 0.5), 'emoji': '➡️'},
+        'BottomLeft': {'pos': (0, 1), 'emoji': '↙️'},
+        'BottomCenter': {'pos': (0.5, 1), 'emoji': '⬇️'},
+        'BottomRight': {'pos': (1, 1), 'emoji': '↘️'},
+    }
+    
+    def __init__(self, zone, monitor_name, commands_dict, monitor_geom):
+        Gtk.Window.__init__(self, type=Gtk.WindowType.POPUP)
+        
+        self.zone = zone
+        self.monitor_name = monitor_name
+        self.commands = commands_dict
+        self.monitor_geom = monitor_geom
+        
+        # Window setup
+        self.set_decorated(False)
+        self.set_keep_above(True)
+        self.set_skip_taskbar_hint(True)
+        self.set_skip_pager_hint(True)
+        self.set_app_paintable(True)
+        self.set_type_hint(Gdk.WindowTypeHint.POPUP_MENU)
+        
+        # Transparency
+        screen = Gdk.Screen.get_default()
+        visual = screen.get_rgba_visual()
+        if visual:
+            self.set_visual(visual)
+        self.connect("draw", self.on_draw)
+        
+        # Content
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        box.set_margin_top(15)
+        box.set_margin_bottom(15)
+        box.set_margin_start(15)
+        box.set_margin_end(15)
+        
+        # Zone header
+        header = Gtk.Label()
+        header.set_markup(
+            f"<big><b>{self.ZONE_INFO[zone]['emoji']} {zone}</b></big>\n"
+            f"<small>{monitor_name}</small>"
+        )
+        header.set_halign(Gtk.Align.CENTER)
+        box.pack_start(header, False, False, 0)
+        
+        # Commands list
+        for event, command in commands_dict.items():
+            if command.strip():
+                cmd_display = command if len(command) < 30 else command[:27] + "..."
+                event_label = Gtk.Label()
+                event_label.set_markup(f"<small><b>{event}</b>\n{cmd_display}</small>")
+                event_label.set_halign(Gtk.Align.START)
+                event_label.set_line_wrap(True)
+                event_label.set_max_width_chars(35)
+                box.pack_start(event_label, False, False, 0)
+        
+        self.add(box)
+        self.set_size_request(300, -1)
+        self.position_window()
+        self.show_all()
+    
+    def position_window(self):
+        """Position window at zone location on specific monitor"""
+        geom = self.monitor_geom
+        
+        x_pos, y_pos = self.ZONE_INFO[self.zone]['pos']
+        
+        window_width = 300
+        window_height = 200
+        padding = 20
+        
+        if x_pos == 0:
+            x = geom['x'] + padding
+        elif x_pos == 0.5:
+            x = geom['x'] + (geom['width'] // 2) - (window_width // 2)
+        else:
+            x = geom['x'] + geom['width'] - window_width - padding
+        
+        if y_pos == 0:
+            y = geom['y'] + padding
+        elif y_pos == 0.5:
+            y = geom['y'] + (geom['height'] // 2) - (window_height // 2)
+        else:
+            y = geom['y'] + geom['height'] - window_height - padding
+        
+        self.move(int(x), int(y))
+    
+    def on_draw(self, widget, context):
+        """Draw semi-transparent background"""
+        import cairo
+        context.set_source_rgba(0.1, 0.1, 0.1, 0.88)
+        context.paint()
+        return False
+
+
+class MonitorHelper:
+    """Helper class to manage monitor information"""
+    
+    def __init__(self):
+        self.monitors = {}
+    
+    def detect_monitors(self):
+        """Detect all monitors and their geometry"""
+        self.monitors = {}
+        screen = Gdk.Screen.get_default()
+        
+        for i in range(screen.get_n_monitors()):
+            geom = screen.get_monitor_geometry(i)
+            monitor_name = screen.get_monitor_plug_name(i)
+            
+            if not monitor_name:
+                monitor_name = f"Monitor-{i}"
+            
+            self.monitors[monitor_name] = {
+                'index': i,
+                'x': geom.x,
+                'y': geom.y,
+                'width': geom.width,
+                'height': geom.height
+            }
+            
+            print(f"[MONITOR] {monitor_name}: {geom.x},{geom.y} ({geom.width}x{geom.height})")
+        
+        return self.monitors
+    
+    def get_monitor_geom(self, monitor_name):
+        """Get geometry for specific monitor"""
+        if monitor_name in self.monitors:
+            return self.monitors[monitor_name]
+        
+        if self.monitors:
+            return list(self.monitors.values())[0]
+        
+        return {'x': 0, 'y': 0, 'width': 1920, 'height': 1080}
+
+
+class ZoneGridWidget(Gtk.Grid):
+    """Visual 8-zone grid selector"""
+    
+    ZONE_INFO = {
+        'TopLeft': {'emoji': '↖️', 'pos': (0, 0)},
+        'TopCenter': {'emoji': '⬆️', 'pos': (1, 0)},
+        'TopRight': {'emoji': '↗️', 'pos': (2, 0)},
+        'Left': {'emoji': '⬅️', 'pos': (0, 1)},
+        'Right': {'emoji': '➡️', 'pos': (2, 1)},
+        'BottomLeft': {'emoji': '↙️', 'pos': (0, 2)},
+        'BottomCenter': {'emoji': '⬇️', 'pos': (1, 2)},
+        'BottomRight': {'emoji': '↘️', 'pos': (2, 2)},
+    }
+    
+    def __init__(self, zones, callback):
+        Gtk.Grid.__init__(self)
+        self.set_column_spacing(8)
+        self.set_row_spacing(8)
+        self.set_halign(Gtk.Align.CENTER)
+        
+        self.zones = zones
+        self.callback = callback
+        self.buttons = {}
+        self.active_zone = zones[0]
+        
+        # Create 3x3 grid with center empty
+        for row in range(3):
+            for col in range(3):
+                # Skip center (it's empty in the grid)
+                if row == 1 and col == 1:
+                    continue
+                
+                # Find zone for this position
+                zone = None
+                for z, info in self.ZONE_INFO.items():
+                    if info['pos'] == (col, row):
+                        zone = z
+                        break
+                
+                if zone:
+                    btn = Gtk.Button()
+                    btn.set_size_request(60, 60)
+                    btn.set_label(f"{self.ZONE_INFO[zone]['emoji']}\n{zone.replace('Center', 'C').replace('Left', 'L').replace('Right', 'R')}")
+                    btn.set_tooltip_text(zone)
+                    btn.connect("clicked", self.on_zone_clicked, zone)
+                    
+                    self.buttons[zone] = btn
+                    self.attach(btn, col, row, 1, 1)
+        
+        self.update_colors()
+        self.show_all()
+    
+    def on_zone_clicked(self, button, zone):
+        """Handle zone button click"""
+        self.active_zone = zone
+        self.update_colors()
+        self.callback(zone)
+    
+    def update_colors(self):
+        """Update button colors based on active zone"""
+        for zone, btn in self.buttons.items():
+            if zone == self.active_zone:
+                # Active = blue
+                btn.get_style_context().remove_class("zone-inactive")
+                btn.get_style_context().add_class("zone-active")
+            else:
+                # Inactive = grey/white
+                btn.get_style_context().remove_class("zone-active")
+                btn.get_style_context().add_class("zone-inactive")
+    
+    def set_active_zone(self, zone):
+        """Set active zone programmatically"""
+        if zone in self.buttons:
+            self.active_zone = zone
+            self.update_colors()
+
+
 class FittsmonGUI:
     # Only wheel events conflict
     CONFLICT_PAIRS = {
@@ -126,6 +350,8 @@ class FittsmonGUI:
         
         self.monitors = []
         self.config = ConfigParser()
+        self.hotspot_windows = []
+        self.monitor_helper = MonitorHelper()
         
         # 8 zones in correct order
         self.zones = [
@@ -155,6 +381,7 @@ class FittsmonGUI:
         self.detect_monitors()
         self.load_config()
         self.setup_gui()
+        self.setup_styles()
     
     def detect_monitors(self):
         """Detect connected monitors using xrandr"""
@@ -180,6 +407,8 @@ class FittsmonGUI:
         except Exception as e:
             print(f"[ERROR] Monitor detection failed: {e}")
             self.monitors = [{'name': 'default', 'primary': True}]
+        
+        self.monitor_helper.detect_monitors()
     
     def load_config(self):
         """Load configuration from fittsmonrc"""
@@ -298,33 +527,67 @@ class FittsmonGUI:
         time.sleep(1)
         return self.start_fittsmon()
     
+    def show_hotspot_windows(self):
+        """Show hotspot windows for all monitors"""
+        self.close_hotspot_windows()
+        
+        for mon_name in [m['name'] for m in self.monitors]:
+            mon_geom = self.monitor_helper.get_monitor_geom(mon_name)
+            
+            for zone in self.zones:
+                commands_dict = {}
+                for event in self.events:
+                    cmd = self.get_command(mon_name, zone, event)
+                    if cmd.strip():
+                        commands_dict[event] = cmd
+                
+                if commands_dict:
+                    hotspot = HotspotWindow(zone, mon_name, commands_dict, mon_geom)
+                    self.hotspot_windows.append(hotspot)
+    
+    def close_hotspot_windows(self):
+        """Close all hotspot windows"""
+        for window in self.hotspot_windows:
+            window.destroy()
+        self.hotspot_windows = []
+    
+    def setup_styles(self):
+        """Setup CSS styles for zone grid"""
+        css_provider = Gtk.CssProvider()
+        css = """
+        .zone-active {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .zone-inactive {
+            background-color: #E0E0E0;
+            color: #333333;
+        }
+        
+        .zone-active:hover {
+            background-color: #1976D2;
+        }
+        
+        .zone-inactive:hover {
+            background-color: #BDBDBD;
+        }
+        """
+        css_provider.load_from_data(css.encode())
+        context = Gtk.StyleContext()
+        context.add_provider_for_screen(
+            Gdk.Screen.get_default(),
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+    
     def setup_gui(self):
         """Setup GTK GUI"""
         self.window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
         self.window.set_title("fittsmon")
-        self.window.set_default_size(850, 700)
+        self.window.set_default_size(850, 800)
         self.window.set_position(Gtk.WindowPosition.CENTER)
         self.window.connect("destroy", Gtk.main_quit)
-        # Set application icon (try theme icon name, fallback to bundled svg)
-        try:
-            # Prefer the standard themed icon `input-mouse`
-            icon_theme = Gtk.IconTheme.get_default()
-            if icon_theme and icon_theme.has_icon('input-mouse'):
-                try:
-                    self.window.set_icon_name('input-mouse')
-                    Gtk.Window.set_default_icon_name('input-mouse')
-                except Exception:
-                    pass
-            else:
-                # Fallback to local icon shipped with the repo (if present)
-                local_icon = os.path.join(os.path.dirname(__file__), 'icons', 'scalable', 'apps', 'fittsmon-gui.svg')
-                if os.path.exists(local_icon):
-                    try:
-                        self.window.set_icon_from_file(local_icon)
-                    except Exception:
-                        pass
-        except Exception:
-            pass
         
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
         main_box.set_margin_top(15)
@@ -359,80 +622,18 @@ class FittsmonGUI:
         mon_box.pack_start(self.monitor_combo, True, True, 0)
         main_box.pack_start(mon_box, False, False, 0)
         
-        # Zone selection
-        zone_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        zone_box.pack_start(Gtk.Label(label="Zone:"), False, False, 0)
-        self.zone_combo = Gtk.ComboBoxText()
-        for zone in self.zones:
-            self.zone_combo.append_text(zone)
-        self.zone_combo.set_active(0)
-        self.zone_combo.connect("changed", self.on_zone_changed)
+        # Zone selection with visual grid
+        zone_label = Gtk.Label(label="Select Zone:")
+        zone_label.set_halign(Gtk.Align.START)
+        main_box.pack_start(zone_label, False, False, 0)
+        
+        self.zone_grid = ZoneGridWidget(self.zones, self.on_zone_grid_clicked)
+        main_box.pack_start(self.zone_grid, False, False, 0)
+        
         self.current_zone = self.zones[0]
-        zone_box.pack_start(self.zone_combo, True, True, 0)
-        main_box.pack_start(zone_box, False, False, 0)
-
-        # Zone visual grid (3x3) - clickable squares mapped to zones
-        self.zone_buttons = {}
-        grid = Gtk.Grid()
-        grid.set_row_spacing(6)
-        grid.set_column_spacing(6)
-
-        # mapping positions to zone names (center is unused)
-        pos_map = {
-            (0,0): 'TopLeft', (1,0): 'TopCenter', (2,0): 'TopRight',
-            (0,1): 'Left',    (1,1): None,         (2,1): 'Right',
-            (0,2): 'BottomLeft',(1,2): 'BottomCenter',(2,2): 'BottomRight'
-        }
-
-        for (x,y), zone in pos_map.items():
-            if zone is None:
-                placeholder = Gtk.Box()
-                placeholder.set_size_request(44,44)
-                grid.attach(placeholder, x, y, 1, 1)
-                continue
-
-            btn = Gtk.Button()
-            btn.set_size_request(44,44)
-            btn.get_style_context().add_class('zone-button')
-            btn.set_tooltip_text(zone)
-            btn.connect('clicked', lambda w, z=zone: self.on_zone_button_clicked(z))
-            grid.attach(btn, x, y, 1, 1)
-            self.zone_buttons[zone] = btn
-
-        # Center the hotspot grid visually
-        grid_container = Gtk.Box()
-        grid_container.set_halign(Gtk.Align.CENTER)
-        grid_container.set_valign(Gtk.Align.CENTER)
-        grid_container.pack_start(grid, False, False, 0)
-        main_box.pack_start(grid_container, False, False, 0)
-
-        # CSS for zone colors
-        try:
-            css = b"""
-            .zone-button {
-              border-radius: 4px;
-              background-color: #c0c0c0;
-              border: 1px solid #8f8f8f;
-            }
-            .zone-button.not-used {
-              background-color: #d0d0d0;
-            }
-            .zone-button.not-selected {
-              background-color: #d6eef9;
-            }
-            .zone-button.selected {
-              background-color: #1976D2;
-              color: #ffffff;
-            }
-            """
-            provider = Gtk.CssProvider()
-            provider.load_from_data(css)
-            screen = Gdk.Screen.get_default()
-            if screen:
-                Gtk.StyleContext.add_provider_for_screen(screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        except Exception:
-            pass
-
+        
+        main_box.pack_start(Gtk.Separator(), False, False, 0)
+        
         # Event selection
         event_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         event_box.pack_start(Gtk.Label(label="Event:"), False, False, 0)
@@ -474,8 +675,6 @@ class FittsmonGUI:
         main_box.pack_start(self.warning_box, False, False, 0)
         
         self.update_command_display()
-        # Ensure visual buttons reflect current state
-        self.update_zone_buttons()
         
         # Action buttons
         action_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -489,6 +688,15 @@ class FittsmonGUI:
         action_box.pack_start(edit_btn, True, True, 0)
         
         main_box.pack_start(action_box, False, False, 0)
+        
+        # Hotspot toggle button
+        hotspot_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        
+        self.hotspot_toggle_btn = Gtk.ToggleButton(label="👁️  Show Hotspots")
+        self.hotspot_toggle_btn.connect("clicked", self.on_hotspot_toggled)
+        hotspot_box.pack_start(self.hotspot_toggle_btn, True, True, 0)
+        
+        main_box.pack_start(hotspot_box, False, False, 0)
         
         # Save & Restart button
         sr_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -508,6 +716,11 @@ class FittsmonGUI:
         main_box.pack_start(sr_box, False, False, 0)
         
         self.window.show_all()
+    
+    def on_zone_grid_clicked(self, zone):
+        """Handle zone grid button click"""
+        self.current_zone = zone
+        self.update_command_display()
     
     def get_event_info(self, event):
         """Get simple event description"""
@@ -534,12 +747,10 @@ class FittsmonGUI:
         
         self.info_label.set_markup(f"<small>{self.get_event_info(self.current_event)}</small>")
         
+        # Update zone grid to show selected zone
+        self.zone_grid.set_active_zone(self.current_zone)
+        
         self.show_conflict_warning()
-        # Update zone buttons to reflect which zones have commands and which is active
-        try:
-            self.update_zone_buttons()
-        except Exception:
-            pass
     
     def show_conflict_warning(self):
         """Show warning only for wheel conflicts"""
@@ -560,48 +771,6 @@ class FittsmonGUI:
         if idx >= 0:
             self.current_monitor = self.monitors[idx]['name']
             self.update_command_display()
-    
-    def on_zone_changed(self, widget):
-        idx = self.zone_combo.get_active()
-        if idx >= 0:
-            self.current_zone = self.zones[idx]
-            self.update_command_display()
-
-    def on_zone_button_clicked(self, zone):
-        """Handle clicking a visual zone button: select the zone."""
-        try:
-            idx = self.zones.index(zone)
-            self.zone_combo.set_active(idx)
-            # on_zone_changed will call update_command_display
-        except ValueError:
-            pass
-
-    def update_zone_buttons(self):
-        """Refresh visual state of zone buttons.
-
-        States:
-        - not-used: no command configured (grey)
-        - not-selected: has command but not current (light blue)
-        - selected: current zone (highlight)
-        """
-        for zone, btn in self.zone_buttons.items():
-            # clear state classes
-            sc = btn.get_style_context()
-            for cls in ('selected', 'not-selected', 'not-used'):
-                try:
-                    sc.remove_class(cls)
-                except Exception:
-                    pass
-
-            # determine state
-            cmd = self.get_command(self.current_monitor, zone, self.current_event)
-            if zone == self.current_zone:
-                sc.add_class('selected')
-            else:
-                if cmd:
-                    sc.add_class('not-selected')
-                else:
-                    sc.add_class('not-used')
     
     def on_event_changed(self, widget):
         idx = self.event_combo.get_active()
@@ -646,6 +815,17 @@ class FittsmonGUI:
         except Exception as e:
             self.set_status(f"Error: {e}", error=True)
     
+    def on_hotspot_toggled(self, widget):
+        """Toggle hotspot windows for all monitors"""
+        if widget.get_active():
+            self.show_hotspot_windows()
+            self.hotspot_toggle_btn.set_label("👁️  Hide Hotspots")
+            self.set_status("✓ Showing hotspots on all monitors", error=False)
+        else:
+            self.close_hotspot_windows()
+            self.hotspot_toggle_btn.set_label("👁️  Show Hotspots")
+            self.set_status("✓ Hotspots hidden", error=False)
+    
     def on_save_clicked(self, widget):
         """Save config"""
         self.save_config()
@@ -669,7 +849,7 @@ class FittsmonGUI:
         print("="*50 + "\n")
         Gtk.main()
 
+
 if __name__ == "__main__":
     app = FittsmonGUI()
     app.run()
- 
