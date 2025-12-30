@@ -11,6 +11,13 @@ What this repository contains
 - `icons/` — application icon(s) (hicolor theme layout)
 - `README_INSTALL.md` — quick install instructions
 
+## ⚠️ Important: Set Primary Monitor First
+
+Before using fittsmon and the gui, ensure your primary monitor is correctly set as primary in your display settings.
+
+**Why this matters:** The configuration file relies on the primary monitor being designated correctly. If it's not set properly, fittsmon won't read the settings correctly.
+
+
 Quick usage
 - Run from source (no install):
 
