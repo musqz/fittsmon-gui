@@ -1,6 +1,6 @@
 ![Menu preview](images/menu-800.jpg)
 
-![Overview](images/overview.jpg){width 550 pix}
+![Overview](images/overview.jpg)
 
 # fittsmon-gui
 
