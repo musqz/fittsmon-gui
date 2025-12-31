@@ -97,7 +97,7 @@ cd fittsmon
 
 Project repository (fittsmon): https://gitlab.com/muzlabz/fittsmon.git
 
-### Disclaimer & AI Notice
+### Disclaimer
 
 **No Warranty**: This software is provided AS-IS without any warranty of any kind.
 
@@ -108,7 +108,5 @@ Project repository (fittsmon): https://gitlab.com/muzlabz/fittsmon.git
 While tested in personal use, code quality cannot be guaranteed for all edge cases.
 Users are responsible for:
 - Testing before production use
-
-
 
 See [LICENSE](LICENSE) for full legal terms.
