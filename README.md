@@ -2,6 +2,8 @@
 
 ![Overview](images/overview.jpg)
 
+[fittsmon-gui & picom](https://github.com/musqz/fittsmon-gui/blob/main/images/picom-trans-round-corners.jpg)
+
 # fittsmon-gui
 
 Lightweight GTK3 GUI to configure `fittsmon` screen-corner hotspots.
