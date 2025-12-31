@@ -1,34 +1,23 @@
 .TH FITTSMON-GUI 1 "January 2026" "fittsmon-gui 0.0.1" "User Commands"
 .SH NAME
-fittsmon-gui \- Simple graphical configuration tool for `fittsmon`.
+fittsmon-gui \- Graphical configuration tool for screen corner hotspots.
 
 .SH SYNOPSIS
 .B fittsmon-gui
 
 .SH DESCRIPTION
 .B fittsmon-gui
-is a simple graphical user interface (GUI) for configuring screen corner hotspots. It provides an easy way for non-technical users to map mouse events (clicks, wheel scrolling, mouse enter/leave) in screen corners to shell commands.
-The GUI automatically detects all connected monitors and allows per-monitor, per-zone, and per-event command configuration.
+is a graphical user interface for configuring screen corner hotspots. It allows users to map mouse events (clicks, wheel scrolling, mouse enter/leave) in screen corners and edges to shell commands.
 
-.SH REQUIREMENTS
-.B fittsmon-gui
-requires:
-.RS
-.IP \(bu 2
-Python 3.6 or higher
-.IP \(bu 2
-PyGObject (GTK 3 bindings)
-.IP \(bu 2
-fittsmon installed
-.IP \(bu 2
-xrandr (for monitor detection)
-.RE
+The GUI automatically detects all connected monitors and provides an intuitive interface for per-monitor, per-zone, and per-event command configuration.
 
 .SH CONFIGURATION
 All configuration is stored in:
 .RS
 .B ~/.config/fittsmon/fittsmonrc
 .RE
+
+Configuration changes are automatically saved when commands are entered or modified.
 
 .SH USAGE
 
@@ -37,56 +26,93 @@ Start the GUI:
 .B fittsmon-gui
 .RE
 
+.SS Basic Workflow
+.IP 1. 3
+Select a monitor from the dropdown
+.IP 2. 3
+Click a zone on the visual grid (corners or edges)
+.IP 3. 3
+Select an event type from the dropdown
+.IP 4. 3
+Type a shell command in the text field
+.IP 5. 3
+Click Test to verify the command works
+.IP 6. 3
+Click Restart to activate the configuration
+
+.SH ZONES
+
+Eight zones are available per monitor:
 .RS
 .IP \(bu 2
-Select a monitor from the dropdown.
+TopLeft, TopCenter, TopRight
 .IP \(bu 2
-Select a zone (corner/edge).
+Left, Right
 .IP \(bu 2
-Select an event to configure.
+BottomLeft, BottomCenter, BottomRight
+.RE
+
+.SH EVENTS
+
+Nine event types are supported:
+.RS
 .IP \(bu 2
-Type a shell command in the text field (auto-saves).
+WheelUp, WheelDown - continuous wheel scrolling
 .IP \(bu 2
-Click "Test" to execute the command immediately.
+WheelUpOnce, WheelDownOnce - rate-limited wheel scrolling
 .IP \(bu 2
-Click "Save" to write changes to disk.
+LeftButton, RightButton, MiddleButton - mouse button clicks
 .IP \(bu 2
-Click "Restart" to reload the 'fittsmon' daemon.
+Enter, Leave - mouse entering or leaving the zone
 .RE
 
 .SH BUTTONS
 
 .TP
 .B Test
-Execute the current command immediately to verify it works
+Execute the current command to verify it works.
 
 .TP
 .B Edit File
-Open the configuration file in your default text editor (geany, gedit, etc.)
+Open the configuration file in the default text editor.
+
+.TP
+.B Show Hotspots
+Display configured hotspots as overlay windows on all monitors.
 
 .TP
 .B Save
-Write all changes to the configuration file
+Write configuration changes to the config file.
 
 .TP
 .B Restart
-Kill and restart the 'fittsmon' daemon to activate changes
+Reload the fittsmon daemon with the current configuration.
 
 .SH CONFLICT RESOLUTION
 
-The GUI prevents conflicting wheel event configurations:
+The GUI prevents invalid configurations:
 .RS
 .IP \(bu 2
-Only ONE of WheelUp/WheelUpOnce can be set per zone
+WheelUp and WheelUpOnce are mutually exclusive per zone
 .IP \(bu 2
-Only ONE of WheelDown/WheelDownOnce can be set per zone
+WheelDown and WheelDownOnce are mutually exclusive per zone
 .IP \(bu 2
-Enter and Leave can be used together (they are opposite events)
+Button events can coexist with any other event
 .IP \(bu 2
-Button events can coexist with any other events
+Enter and Leave events can be used together
 .RE
 
-When a conflict is detected, the GUI shows a warning and provides a "Clear Conflict" button.
+When a conflict is detected, a warning appears with an option to clear the conflicting setting.
+
+.SH MULTI-MONITOR SUPPORT
+
+The GUI automatically detects and lists all connected monitors. Configuration is saved separately for each monitor. The primary monitor's sections use zone names only (e.g., [TopLeft]), while secondary monitors include the monitor name (e.g., [HDMI-1-TopLeft]).
+
+.SH FILES
+
+.TP
+.B ~/.config/fittsmon/fittsmonrc
+Configuration file containing zone and event command mappings.
 
 .SH SEE ALSO
 .BR fittsmon (1)
@@ -99,4 +125,3 @@ Created with askcodi account (paid).
 
 .SH LICENSE
 GNU General Public License v2.0 or later
-.RE
