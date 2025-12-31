@@ -47,14 +47,14 @@ man fittsmon
 
 # Trouble shooting
 
-If `fittsmon-gui` is not reading the config file right.
+1. If `fittsmon-gui` is not reading the config file right.
 
  - Check if the primary monitor is correctly set as primary in your display settings.
  - This can be done with a tool like `arandr` for openbox.
 
  **Why this matters:** The configuration file relies on the primary monitor being designated correctly. If it's not set properly, fittsmon won't read the settings correctly.
 
-If fittsmon is not reacting after closing fittsmon-gui, use `Alt-F2` to reload fittsmon as daemon.
+2. If fittsmon is not reacting after closing fittsmon-gui, use `Alt-F2` to reload fittsmon as daemon.
 
 ```
 fittsmon --monitor arg arg
