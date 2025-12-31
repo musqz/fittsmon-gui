@@ -66,7 +66,7 @@ Config location:
 
 - User configuration is saved to `~/.config/fittsmon/fittsmonrc`.
 
-Notes (explicit paths)
+**Notes** (explicit paths)
 
 When you run `sudo ./install.sh` without setting `PREFIX`, the default `PREFIX` is `/usr/local`. Files will be placed as follows:
 
@@ -82,10 +82,10 @@ If you install with `PREFIX=/usr`, files will be placed under `/usr` instead:
 - Desktop file: /usr/share/applications/fittsmon-gui.desktop
 - Icon (hicolor theme): /usr/share/icons/hicolor/scalable/apps/fittsmon-gui.svg
 
-License
+**License**
 - GNU General Public License v2.0 or later
 
-Prerequisite
+**Prerequisite**
 - This GUI requires the `fittsmon` daemon to be installed and available on your system.
 - Install `fittsmon` from the upstream repository:
 
