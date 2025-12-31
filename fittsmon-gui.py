@@ -179,8 +179,8 @@ class HotspotWindow(Gtk.Window):
         
         self.add(box)
         self.set_size_request(300, -1)
-        self.position_window()
         self.show_all()
+        self.position_window()
     
     def position_window(self):
         """Position window at zone location on specific monitor"""
@@ -189,7 +189,6 @@ class HotspotWindow(Gtk.Window):
         x_pos, y_pos = self.ZONE_INFO[self.zone]['pos']
         
         window_width = 300
-        window_height = 200
         padding = 20
         
         if x_pos == 0:
@@ -202,11 +201,30 @@ class HotspotWindow(Gtk.Window):
         if y_pos == 0:
             y = geom['y'] + padding
         elif y_pos == 0.5:
+            y = geom['y'] + (geom['height'] // 2)  # Will be adjusted after getting real height
+        else:  # Bottom zones
+            y = geom['y'] + geom['height']  # Will be adjusted after getting real height
+        
+        self.move(int(x), int(y))
+        
+        # Schedule repositioning after window is fully laid out
+        GLib.idle_add(self._reposition_after_layout, geom, x_pos, y_pos)
+    
+    def _reposition_after_layout(self, geom, x_pos, y_pos):
+        """Reposition window after it's been fully drawn"""
+        _, window_height = self.get_size()
+        x, _ = self.get_position()
+        padding = 20
+        
+        if y_pos == 0:
+            y = geom['y'] + padding
+        elif y_pos == 0.5:
             y = geom['y'] + (geom['height'] // 2) - (window_height // 2)
-        else:
+        else:  # Bottom zones - anchor to bottom and grow upward
             y = geom['y'] + geom['height'] - window_height - padding
         
         self.move(int(x), int(y))
+        return False  # Don't reschedule
     
     def on_draw(self, widget, context):
         """Draw semi-transparent background"""
@@ -352,6 +370,7 @@ class FittsmonGUI:
         self.config = ConfigParser()
         self.hotspot_windows = []
         self.monitor_helper = MonitorHelper()
+        self.daemon_was_running = False
         
         # 8 zones in correct order
         self.zones = [
@@ -380,6 +399,10 @@ class FittsmonGUI:
         
         self.detect_monitors()
         self.load_config()
+        
+        # Check if daemon was running BEFORE we start the GUI
+        self.check_daemon_status()
+        
         self.setup_gui()
         self.setup_styles()
     
@@ -425,11 +448,11 @@ class FittsmonGUI:
             # Pass zones, events, and monitors to write method
             self.config.write(self.config_file, self.zones, self.events, self.monitors)
             print(f"[CONFIG] Saved: {self.config_file}")
-            self.set_status("✓ Saved!", error=False)
+            self.set_status("Saved", error=False)
             return True
         except Exception as e:
             print(f"[ERROR] Failed to save config: {e}")
-            self.set_status(f"✗ Error: {e}", error=True)
+            self.set_status(f"Error: {e}", error=True)
             return False
     
     def get_section_name(self, monitor, zone):
@@ -480,6 +503,27 @@ class FittsmonGUI:
             }
         
         return None
+    
+    def is_daemon_running(self):
+        """Check if fittsmon daemon is currently running"""
+        try:
+            result = subprocess.run(
+                ["pgrep", "-f", "fittsmon"],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            is_running = result.returncode == 0
+            print(f"[DAEMON] Status check: {'Running' if is_running else 'Not running'}")
+            return is_running
+        except Exception as e:
+            print(f"[ERROR] Failed to check daemon status: {e}")
+            return False
+    
+    def check_daemon_status(self):
+        """Check if daemon was running when GUI started"""
+        self.daemon_was_running = self.is_daemon_running()
+        print(f"[DAEMON] Initial status at startup: {'Running' if self.daemon_was_running else 'Not running'}")
     
     def kill_fittsmon(self):
         """Kill fittsmon process"""
@@ -587,7 +631,7 @@ class FittsmonGUI:
         self.window.set_title("fittsmon")
         self.window.set_default_size(850, 800)
         self.window.set_position(Gtk.WindowPosition.CENTER)
-        self.window.connect("destroy", Gtk.main_quit)
+        self.window.connect("delete-event", self.on_window_close)
         
         # Set window icon
         try:
@@ -607,10 +651,11 @@ class FittsmonGUI:
         title.set_markup("<big><b>fittsmon action manager</b></big>\n<small>Screen Corner Hotspots</small>")
         main_box.pack_start(title, False, False, 0)
         
-        # Status
+        # Status - BIGGER AND BOLDER
         self.status_label = Gtk.Label()
-        self.status_label.set_markup("<small>Ready</small>")
+        self.status_label.set_markup("<span size='large' weight='bold' foreground='green'>Ready</span>")
         self.status_label.set_line_wrap(True)
+        self.status_label.set_halign(Gtk.Align.CENTER)
         main_box.pack_start(self.status_label, False, False, 0)
         
         main_box.pack_start(Gtk.Separator(), False, False, 0)
@@ -723,6 +768,38 @@ class FittsmonGUI:
         
         self.window.show_all()
     
+    def on_window_close(self, widget, event):
+        """Handle window close - ensure daemon is still running if it was before"""
+        print("[GUI] Window close requested")
+        
+        # Close hotspot windows first
+        self.close_hotspot_windows()
+        
+        # If daemon was running before we started, make sure it's running now
+        if self.daemon_was_running:
+            print("[GUI] Daemon was running before GUI started, checking status...")
+            if not self.is_daemon_running():
+                print("[GUI] Daemon is not running! Restarting...")
+                self.set_status("Restarting daemon before closing", error=False)
+                # Don't kill, just start it
+                if self.start_fittsmon():
+                    time.sleep(1)
+                    if self.is_daemon_running():
+                        print("[GUI] Daemon successfully restarted")
+                        self.set_status("Daemon restarted, closing", error=False)
+                    else:
+                        print("[GUI] Failed to restart daemon!")
+                        self.set_status("Warning: Failed to restart daemon", error=True)
+                        time.sleep(2)
+            else:
+                print("[GUI] Daemon is still running, closing cleanly")
+        else:
+            print("[GUI] Daemon was not running before, not restarting")
+        
+        # Exit the application
+        Gtk.main_quit()
+        return False  # Don't prevent the window from closing
+    
     def on_zone_grid_clicked(self, zone):
         """Handle zone grid button click"""
         self.current_zone = zone
@@ -809,7 +886,7 @@ class FittsmonGUI:
             return
         try:
             subprocess.Popen(command, shell=True)
-            self.set_status(f"Executed!", error=False)
+            self.set_status("Executed", error=False)
         except Exception as e:
             self.set_status(f"Error: {e}", error=True)
     
@@ -817,7 +894,7 @@ class FittsmonGUI:
         """Open config file in default editor"""
         try:
             subprocess.Popen(["xdg-open", str(self.config_file)])
-            self.set_status("Opening editor...", error=False)
+            self.set_status("Opening editor", error=False)
         except Exception as e:
             self.set_status(f"Error: {e}", error=True)
     
@@ -826,11 +903,11 @@ class FittsmonGUI:
         if widget.get_active():
             self.show_hotspot_windows()
             self.hotspot_toggle_btn.set_label("👁️  Hide Hotspots")
-            self.set_status("✓ Showing hotspots on all monitors", error=False)
+            self.set_status("Showing hotspots on all monitors", error=False)
         else:
             self.close_hotspot_windows()
             self.hotspot_toggle_btn.set_label("👁️  Show Hotspots")
-            self.set_status("✓ Hotspots hidden", error=False)
+            self.set_status("Hotspots hidden", error=False)
     
     def on_save_clicked(self, widget):
         """Save config"""
@@ -838,16 +915,22 @@ class FittsmonGUI:
     
     def on_restart_clicked(self, widget):
         """Restart daemon"""
-        self.set_status("Restarting...", error=False)
+        self.set_status("Restarting", error=False)
         success = self.restart_fittsmon()
         if success:
-            self.set_status("✓ Ready!", error=False)
+            self.set_status("Ready", error=False)
         else:
-            self.set_status("✗ Error restarting", error=True)
+            self.set_status("Error restarting", error=True)
     
     def set_status(self, message, error=False):
+        """Display status message - bigger and bolder"""
         color = "red" if error else "green"
-        self.status_label.set_markup(f"<small><span foreground='{color}'>{message}</span></small>")
+        symbol = "✗" if error else "✓"
+        self.status_label.set_markup(
+            f"<span size='large' weight='bold' foreground='{color}'>"
+            f"{symbol} {message}"
+            f"</span>"
+        )
     
     def run(self):
         print("\n" + "="*50)
