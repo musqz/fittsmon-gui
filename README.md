@@ -16,11 +16,6 @@ What this repository contains
 - `icons/` — application icon(s) (hicolor theme layout)
 - `README_INSTALL.md` — quick install instructions
 
-## ⚠️ Important: Set Primary Monitor First
-
-Before using fittsmon and the gui, ensure your primary monitor is correctly set as primary in your display settings.
-
-**Why this matters:** The configuration file relies on the primary monitor being designated correctly. If it's not set properly, fittsmon won't read the settings correctly.
 
 
 Quick usage
@@ -43,8 +38,32 @@ sudo ./install.sh
 chmod +x uninstall.sh
 sudo ./uninstall.sh
 ```
+# Manpage
 
-Configuration
+```
+man fittsmon-gui
+man fittsmon
+```
+
+# Trouble shooting
+
+If `fittsmon-gui` is not reading the config file right.
+
+ - Check if the primary monitor is correctly set as primary in your display settings.
+ - This can be done with a tool like `arandr` for openbox.
+
+ **Why this matters:** The configuration file relies on the primary monitor being designated correctly. If it's not set properly, fittsmon won't read the settings correctly.
+
+If fittsmon is not reacting after closing fittsmon-gui, use `Alt-F2` to reload fittsmon as daemon.
+
+```
+fittsmon --monitor arg arg
+```
+
+# Configuration
+
+Config location:
+
 - User configuration is saved to `~/.config/fittsmon/fittsmonrc`.
 
 Notes (explicit paths)
@@ -78,16 +97,18 @@ cd fittsmon
 
 Project repository (fittsmon): https://gitlab.com/muzlabz/fittsmon.git
 
-## ⚠️ Disclaimer & AI Notice
+### Disclaimer & AI Notice
 
 **No Warranty**: This software is provided AS-IS without any warranty of any kind.
 
 **AI-Assisted Code**: This project was developed with assistance from:
 - GitHub Copilot
-- Other AI code generation payed tools (like claude-haiku-4-5)
+- Other AI code generation paid tools (like codex claude-haiku-4-5 model)
 
 While tested in personal use, code quality cannot be guaranteed for all edge cases.
 Users are responsible for:
 - Testing before production use
+
+
 
 See [LICENSE](LICENSE) for full legal terms.
