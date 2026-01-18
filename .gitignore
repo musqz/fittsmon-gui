@@ -61,3 +61,4 @@ secrets.json
 # Icon/build artifacts (project-specific)
 icons/scalable/icons.cache
 icons/**/icons.cache
+.aider*
