@@ -547,11 +547,13 @@ class FittsmonGUI:
             print(f"[DAEMON] Starting: {' '.join(cmd)}")
             
             process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                preexec_fn=os.setsid if hasattr(os, 'setsid') else None
-            )
+            cmd,
+            stdout=subprocess.DEVNULL,  # discard output
+            stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,
+            close_fds=True,
+            preexec_fn=os.setsid if hasattr(os, 'setsid') else None
+        )
             
             time.sleep(1)
             
@@ -783,7 +785,7 @@ class FittsmonGUI:
                 self.set_status("Restarting daemon before closing", error=False)
                 # Don't kill, just start it
                 if self.start_fittsmon():
-                    time.sleep(1)
+                    time.sleep(2)
                     if self.is_daemon_running():
                         print("[GUI] Daemon successfully restarted")
                         self.set_status("Daemon restarted, closing", error=False)
