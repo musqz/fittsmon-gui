@@ -762,12 +762,6 @@ class FittsmonGUI:
         self.status_label.set_halign(Gtk.Align.CENTER)
         main_box.pack_start(self.status_label, False, False, 0)
         
-        # Enter/Leave mode indicator
-        self.enter_leave_label = Gtk.Label()
-        self.enter_leave_label.set_markup("<span size='small' foreground='#FF9800'>No enter/leave mode active</span>")
-        self.enter_leave_label.set_halign(Gtk.Align.CENTER)
-        main_box.pack_start(self.enter_leave_label, False, False, 0)
-        
         main_box.pack_start(Gtk.Separator(), False, False, 0)
         
         # Monitor selection
@@ -946,46 +940,10 @@ class FittsmonGUI:
         self.show_conflict_warning()
         self.update_enter_leave_indicator()
     
-    def show_enter_leave_conflict_warning(self, conflict_info):
-        """Show warning for enter/leave conflicts"""
-        dialog = Gtk.MessageDialog(
-            parent=None,
-            flags=0,
-            message_type=Gtk.MessageType.WARNING,
-            buttons=Gtk.ButtonsType.OK,
-            text="⚠️  ACTION BLOCKED: Enter/Leave Mode Active!"
-        )
-        
-        if conflict_info['type'] == 'conflicting_enter_leave':
-            msg = (f"Can't set {conflict_info['attempted_mode'].upper()} on {conflict_info['zone']} "
-                   f"while {conflict_info['active_mode'].upper()} is active.\n\n"
-                   f"Clear {conflict_info['active_mode'].upper()} first or use a different zone.")
-        else:  # other_action_during_enter_leave
-            msg = (f"Can't set {conflict_info['attempted_event']} while "
-                   f"{conflict_info['active_mode'].upper()} is active on {conflict_info['zone']}.\n\n"
-                   f"Clear {conflict_info['active_mode'].upper()} first.")
-        
-        dialog.format_secondary_text(msg)
-        dialog.run()
-        dialog.destroy()
-    
-    def update_enter_leave_indicator(self):
-        """Update the enter/leave mode indicator in UI"""
-        if self.enter_leave_active_mode:
-            mode_name = self.enter_leave_active_mode.upper()
-            indicator_text = f"🔒 {mode_name} mode active on {self.enter_leave_active_zone} ({self.enter_leave_active_monitor})"
-            color = '#D32F2F'  # Red
-        else:
-            indicator_text = "No enter/leave mode active"
-            color = '#FF9800'  # Orange
-        
-        if hasattr(self, 'enter_leave_label'):
-            self.enter_leave_label.set_markup(
-                f"<span size='small' foreground='{color}'>{indicator_text}</span>"
-            )
     
     def show_conflict_warning(self):
-        """Show warning only for wheel conflicts"""
+        """Show warning for wheel conflicts and enter/leave conflicts"""
+        # Check for wheel conflicts first
         conflict = self.check_conflict(self.current_event)
         
         if conflict:
@@ -995,8 +953,30 @@ class FittsmonGUI:
             )
             self.warning_label.set_markup(msg)
             self.warning_box.show_all()
-        else:
-            self.warning_box.hide()
+            return
+        
+        # Check for enter/leave conflicts
+        el_conflict = self.check_enter_leave_conflict(
+            self.current_monitor, self.current_zone, self.current_event, 
+            self.command_entry.get_text()
+        )
+        
+        if el_conflict:
+            if el_conflict['type'] == 'conflicting_enter_leave':
+                msg = (f"⚠️  <b>CONFLICT</b>: {el_conflict['active_mode'].upper()} already active!\n"
+                       f"Can't set {el_conflict['attempted_mode'].upper()} while "
+                       f"{el_conflict['active_mode'].upper()} is active on {el_conflict['zone']}")
+            else:  # other_action_during_enter_leave
+                msg = (f"⚠️  <b>BLOCKED</b>: {el_conflict['active_mode'].upper()} mode active!\n"
+                       f"Can't set {el_conflict['attempted_event']} while "
+                       f"{el_conflict['active_mode'].upper()} is active on {el_conflict['zone']}")
+            
+            self.warning_label.set_markup(msg)
+            self.warning_box.show_all()
+            return
+        
+        # No conflicts
+        self.warning_box.hide()
     
     def on_monitor_changed(self, widget):
         idx = self.monitor_combo.get_active()
@@ -1016,22 +996,22 @@ class FittsmonGUI:
         success, conflict = self.set_command(self.current_monitor, self.current_zone, self.current_event, command)
         
         if not success and conflict:
-            # Command was rejected
-            self.show_enter_leave_conflict_warning(conflict)
-            self.set_status("Action blocked: enter/leave mode active", error=True)
-            # Revert entry to previous value
+            # Command was rejected - revert entry and show warning inline
             prev_cmd = self.get_command(self.current_monitor, self.current_zone, self.current_event)
             self.command_entry.handler_block_by_func(self.on_command_changed)
             self.command_entry.set_text(prev_cmd)
             self.command_entry.handler_unblock_by_func(self.on_command_changed)
+            self.set_status("Action blocked: enter/leave mode active", error=True)
         else:
             self.save_config()
-            self.show_conflict_warning()
-            self.update_enter_leave_indicator()
             self.set_status("Saved", error=False)
+        
+        # Always update warnings
+        self.show_conflict_warning()
     
     def on_auto_clear_clicked(self, widget):
-        """Auto-clear conflicting wheel event"""
+        """Auto-clear conflicting wheel event or enter/leave mode"""
+        # Check wheel conflict first
         conflict = self.check_conflict(self.current_event)
         if conflict:
             section = self.get_section_name(self.current_monitor, self.current_zone)
@@ -1039,6 +1019,35 @@ class FittsmonGUI:
             self.save_config()
             self.show_conflict_warning()
             self.set_status(f"Cleared {conflict['conflict_event']}", error=False)
+            return
+        
+        # Check enter/leave conflict
+        el_conflict = self.check_enter_leave_conflict(
+            self.current_monitor, self.current_zone, self.current_event,
+            self.command_entry.get_text()
+        )
+        
+        if el_conflict:
+            section = self.get_section_name(self.current_monitor, self.current_zone)
+            # Clear the active enter/leave mode
+            if el_conflict['type'] == 'conflicting_enter_leave':
+                # Clear the active mode
+                mode_to_clear = self.enter_leave_active_mode  # 'enter' or 'leave'
+                self.config.remove_option(section, mode_to_clear.capitalize())
+            else:
+                # Clear the active enter/leave mode blocking other actions
+                mode_to_clear = self.enter_leave_active_mode
+                self.config.remove_option(section, mode_to_clear.capitalize())
+            
+            # Update state tracking
+            self.enter_leave_active_monitor = None
+            self.enter_leave_active_zone = None
+            self.enter_leave_active_mode = None
+            
+            self.save_config()
+            self.show_conflict_warning()
+            self.set_status(f"Cleared {mode_to_clear.capitalize()}", error=False)
+            self.update_command_display()
     
     def on_test_clicked(self, widget):
         """Test command"""
