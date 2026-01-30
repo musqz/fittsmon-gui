@@ -372,6 +372,11 @@ class FittsmonGUI:
         self.monitor_helper = MonitorHelper()
         self.daemon_was_running = False
         
+        # Track enter/leave mode state
+        self.enter_leave_active_monitor = None
+        self.enter_leave_active_zone = None
+        self.enter_leave_active_mode = None  # None, 'enter', or 'leave'
+        
         # 8 zones in correct order
         self.zones = [
             "TopLeft",
@@ -405,6 +410,7 @@ class FittsmonGUI:
         
         self.setup_gui()
         self.setup_styles()
+        self.update_enter_leave_indicator()
     
     def detect_monitors(self):
         """Detect connected monitors using xrandr"""
@@ -439,6 +445,7 @@ class FittsmonGUI:
         if self.config_file.exists():
             print(f"[CONFIG] Loading: {self.config_file}")
             self.config.read(self.config_file)
+            self.initialize_enter_leave_state()  # Load enter/leave state from config
         else:
             print(f"[CONFIG] File not found - will create on save")
     
@@ -467,25 +474,6 @@ class FittsmonGUI:
         section = self.get_section_name(monitor, zone)
         return self.config.get(section, event, fallback="")
     
-    def set_command(self, monitor, zone, event, command):
-        """Set command for a specific monitor, zone, and event"""
-        section = self.get_section_name(monitor, zone)
-        
-        if not self.config.has_section(section):
-            self.config.add_section(section)
-        
-        # Auto-clear conflicting wheel events
-        if command and event in self.CONFLICT_PAIRS:
-            conflict_event = self.CONFLICT_PAIRS[event]
-            conflict_cmd = self.config.get(section, conflict_event, fallback="")
-            if conflict_cmd:
-                print(f"[CONFIG] Auto-clearing: {section}.{conflict_event}")
-                self.config.remove_option(section, conflict_event)
-        
-        # Set the command
-        self.config.set(section, event, command)
-        print(f"[CONFIG] Set {section}.{event} = '{command}'")
-    
     def check_conflict(self, event):
         """Check if there's a wheel event conflict"""
         if event not in self.CONFLICT_PAIRS:
@@ -503,6 +491,120 @@ class FittsmonGUI:
             }
         
         return None
+    
+    def initialize_enter_leave_state(self):
+        """Load enter/leave state from config on startup"""
+        for section in self.config.data.keys():
+            enter_cmd = self.config.get(section, 'Enter', fallback='')
+            leave_cmd = self.config.get(section, 'Leave', fallback='')
+            
+            if enter_cmd:
+                # Extract zone and monitor from section
+                if '-' in section:
+                    parts = section.rsplit('-', 1)
+                    monitor_name = parts[0]
+                    zone = parts[1]
+                else:
+                    monitor_name = self.monitors[0]['name']
+                    zone = section
+                
+                self.enter_leave_active_monitor = monitor_name
+                self.enter_leave_active_zone = zone
+                self.enter_leave_active_mode = 'enter'
+                print(f"[ENTER/LEAVE] Loaded: ENTER mode active on {zone}")
+                return
+            
+            if leave_cmd:
+                if '-' in section:
+                    parts = section.rsplit('-', 1)
+                    monitor_name = parts[0]
+                    zone = parts[1]
+                else:
+                    monitor_name = self.monitors[0]['name']
+                    zone = section
+                
+                self.enter_leave_active_monitor = monitor_name
+                self.enter_leave_active_zone = zone
+                self.enter_leave_active_mode = 'leave'
+                print(f"[ENTER/LEAVE] Loaded: LEAVE mode active on {zone}")
+                return
+    
+    def check_enter_leave_conflict(self, monitor, zone, event, command):
+        """Check for enter/leave conflicts"""
+        # If this event is not Enter or Leave, check if enter/leave is active on this zone
+        if event not in ['Enter', 'Leave']:
+            if (self.enter_leave_active_monitor == monitor and 
+                self.enter_leave_active_zone == zone and 
+                self.enter_leave_active_mode):
+                return {
+                    'type': 'other_action_during_enter_leave',
+                    'active_mode': self.enter_leave_active_mode,
+                    'zone': zone,
+                    'attempted_event': event
+                }
+        
+        # If this event IS Enter or Leave, check for conflicting mode on same zone
+        if event in ['Enter', 'Leave']:
+            if command:  # Only check if trying to SET a command
+                if (self.enter_leave_active_monitor == monitor and 
+                    self.enter_leave_active_zone == zone and 
+                    self.enter_leave_active_mode and
+                    self.enter_leave_active_mode != event.lower()):
+                    # Trying to set conflicting mode
+                    return {
+                        'type': 'conflicting_enter_leave',
+                        'active_mode': self.enter_leave_active_mode,
+                        'attempted_mode': event.lower(),
+                        'zone': zone
+                    }
+        
+        return None
+    
+    def update_enter_leave_state(self, monitor, zone, event, command):
+        """Update enter/leave mode tracking"""
+        if event in ['Enter', 'Leave']:
+            if command:  # Command is being SET
+                self.enter_leave_active_monitor = monitor
+                self.enter_leave_active_zone = zone
+                self.enter_leave_active_mode = event.lower()
+                print(f"[ENTER/LEAVE] {event.upper()} mode activated for {monitor}/{zone}")
+            else:  # Command is being CLEARED
+                if (self.enter_leave_active_monitor == monitor and 
+                    self.enter_leave_active_zone == zone and 
+                    self.enter_leave_active_mode == event.lower()):
+                    self.enter_leave_active_monitor = None
+                    self.enter_leave_active_zone = None
+                    self.enter_leave_active_mode = None
+                    print(f"[ENTER/LEAVE] {event.upper()} mode deactivated")
+    
+    def set_command(self, monitor, zone, event, command):
+        """Set command for a specific monitor, zone, and event"""
+        section = self.get_section_name(monitor, zone)
+        
+        # Check for enter/leave conflicts FIRST
+        el_conflict = self.check_enter_leave_conflict(monitor, zone, event, command)
+        if el_conflict:
+            return False, el_conflict
+        
+        if not self.config.has_section(section):
+            self.config.add_section(section)
+        
+        # Auto-clear conflicting wheel events
+        if command and event in self.CONFLICT_PAIRS:
+            conflict_event = self.CONFLICT_PAIRS[event]
+            conflict_cmd = self.config.get(section, conflict_event, fallback="")
+            if conflict_cmd:
+                print(f"[CONFIG] Auto-clearing: {section}.{conflict_event}")
+                self.config.remove_option(section, conflict_event)
+        
+        # Set the command
+        self.config.set(section, event, command)
+        
+        # Update enter/leave state tracking
+        self.update_enter_leave_state(monitor, zone, event, command)
+        
+        print(f"[CONFIG] Set {section}.{event} = '{command}'")
+        return True, None
     
     def is_daemon_running(self):
         """Check if fittsmon daemon is currently running"""
@@ -659,6 +761,12 @@ class FittsmonGUI:
         self.status_label.set_line_wrap(True)
         self.status_label.set_halign(Gtk.Align.CENTER)
         main_box.pack_start(self.status_label, False, False, 0)
+        
+        # Enter/Leave mode indicator
+        self.enter_leave_label = Gtk.Label()
+        self.enter_leave_label.set_markup("<span size='small' foreground='#FF9800'>No enter/leave mode active</span>")
+        self.enter_leave_label.set_halign(Gtk.Align.CENTER)
+        main_box.pack_start(self.enter_leave_label, False, False, 0)
         
         main_box.pack_start(Gtk.Separator(), False, False, 0)
         
@@ -836,6 +944,45 @@ class FittsmonGUI:
         self.zone_grid.set_active_zone(self.current_zone)
         
         self.show_conflict_warning()
+        self.update_enter_leave_indicator()
+    
+    def show_enter_leave_conflict_warning(self, conflict_info):
+        """Show warning for enter/leave conflicts"""
+        dialog = Gtk.MessageDialog(
+            parent=None,
+            flags=0,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.OK,
+            text="⚠️  ACTION BLOCKED: Enter/Leave Mode Active!"
+        )
+        
+        if conflict_info['type'] == 'conflicting_enter_leave':
+            msg = (f"Can't set {conflict_info['attempted_mode'].upper()} on {conflict_info['zone']} "
+                   f"while {conflict_info['active_mode'].upper()} is active.\n\n"
+                   f"Clear {conflict_info['active_mode'].upper()} first or use a different zone.")
+        else:  # other_action_during_enter_leave
+            msg = (f"Can't set {conflict_info['attempted_event']} while "
+                   f"{conflict_info['active_mode'].upper()} is active on {conflict_info['zone']}.\n\n"
+                   f"Clear {conflict_info['active_mode'].upper()} first.")
+        
+        dialog.format_secondary_text(msg)
+        dialog.run()
+        dialog.destroy()
+    
+    def update_enter_leave_indicator(self):
+        """Update the enter/leave mode indicator in UI"""
+        if self.enter_leave_active_mode:
+            mode_name = self.enter_leave_active_mode.upper()
+            indicator_text = f"🔒 {mode_name} mode active on {self.enter_leave_active_zone} ({self.enter_leave_active_monitor})"
+            color = '#D32F2F'  # Red
+        else:
+            indicator_text = "No enter/leave mode active"
+            color = '#FF9800'  # Orange
+        
+        if hasattr(self, 'enter_leave_label'):
+            self.enter_leave_label.set_markup(
+                f"<span size='small' foreground='{color}'>{indicator_text}</span>"
+            )
     
     def show_conflict_warning(self):
         """Show warning only for wheel conflicts"""
@@ -866,9 +1013,22 @@ class FittsmonGUI:
     def on_command_changed(self, widget):
         """Save immediately when command changes"""
         command = self.command_entry.get_text()
-        self.set_command(self.current_monitor, self.current_zone, self.current_event, command)
-        self.save_config()
-        self.show_conflict_warning()
+        success, conflict = self.set_command(self.current_monitor, self.current_zone, self.current_event, command)
+        
+        if not success and conflict:
+            # Command was rejected
+            self.show_enter_leave_conflict_warning(conflict)
+            self.set_status("Action blocked: enter/leave mode active", error=True)
+            # Revert entry to previous value
+            prev_cmd = self.get_command(self.current_monitor, self.current_zone, self.current_event)
+            self.command_entry.handler_block_by_func(self.on_command_changed)
+            self.command_entry.set_text(prev_cmd)
+            self.command_entry.handler_unblock_by_func(self.on_command_changed)
+        else:
+            self.save_config()
+            self.show_conflict_warning()
+            self.update_enter_leave_indicator()
+            self.set_status("Saved", error=False)
     
     def on_auto_clear_clicked(self, widget):
         """Auto-clear conflicting wheel event"""
