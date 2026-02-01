@@ -1,4 +1,4 @@
-![Menu preview](images/menu-800.jpg)
+![Menu preview](images/menu.jpg)
 
 ![Overview](images/overview.jpg)
 
