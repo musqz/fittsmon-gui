@@ -1079,8 +1079,7 @@ class FittsmonGUI:
             else:
                 msg = (
                     f"<span foreground='#5D4037'>⚠️  <b>Warning:</b> This zone has motion events: {conflict_list}\n"
-                    f"<small>Button clicks may not work reliably with Enter/Leave in the same zone.\n"
-                    f"Consider using only one type of event per zone.</small></span>"
+                    f"<small>Button clicks may not work reliably with Enter/Leave in the same zone."
                 )
             
             self.enter_leave_warning_label.set_markup(msg)
