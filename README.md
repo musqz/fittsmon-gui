@@ -8,6 +8,7 @@
 
 Lightweight GTK3 GUI to configure `fittsmon` screen-corner hotspots.
 
+
 What this repository contains
 - `fittsmon-gui.py` — the GTK3 GUI application (run with Python 3)
 - `install.sh` — installs the program, manpage, `.desktop` file, and icon to `$PREFIX` (defaults to `/usr/local`)
@@ -43,6 +44,21 @@ sudo ./uninstall.sh
 ```
 man fittsmon-gui
 man fittsmon
+```
+
+# Supported languages: 
+
+English, Spanish, Polish (auto-detected from $LANG)
+
+```
+# English (or just run normally)
+LANG=en_US.UTF-8 ./fittsmon-gui.py
+
+# Spanish
+LANG=es_ES.UTF-8 ./fittsmon-gui.py
+
+# Polish
+LANG=pl_PL.UTF-8 ./fittsmon-gui.py
 ```
 
 # Trouble shooting
