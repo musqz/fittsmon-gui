@@ -107,12 +107,12 @@ If you install with `PREFIX=/usr`, files will be placed under `/usr` instead:
 - Install `fittsmon` from the upstream repository:
 
 ```bash
-git clone https://gitlab.com/muzlabz/fittsmon.git
+git clone https://github.com/musqz/fittsmon.git
 cd fittsmon
 # Follow the project README to build/install fittsmon
 ```
 
-Project repository (fittsmon): https://gitlab.com/muzlabz/fittsmon.git
+Project repository (fittsmon): https://github.com/musqz/fittsmon
 
 ### Disclaimer
 
