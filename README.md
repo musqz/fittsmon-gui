@@ -46,10 +46,11 @@ man fittsmon-gui
 man fittsmon
 ```
 
-# Supported languages: 
+# Supported languages
 
 English, Spanish, Polish (auto-detected from $LANG)
 
+Testing commands:
 ```
 # English (or just run normally)
 LANG=en_US.UTF-8 ./fittsmon-gui.py
