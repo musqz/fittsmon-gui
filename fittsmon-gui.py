@@ -214,6 +214,7 @@ class HotspotWindow(Gtk.Window):
         """Reposition window after it's been fully drawn"""
         _, window_height = self.get_size()
         x, _ = self.get_position()
+        
         padding = 20
         
         if y_pos == 0:
@@ -241,16 +242,25 @@ class MonitorHelper:
         self.monitors = {}
     
     def detect_monitors(self):
-        """Detect all monitors and their geometry"""
+        """Detect all monitors and their geometry using modern Gdk.Display API"""
         self.monitors = {}
-        screen = Gdk.Screen.get_default()
+        display = Gdk.Display.get_default()
         
-        for i in range(screen.get_n_monitors()):
-            geom = screen.get_monitor_geometry(i)
-            monitor_name = screen.get_monitor_plug_name(i)
+        n_monitors = display.get_n_monitors()
+        for i in range(n_monitors):
+            monitor = display.get_monitor(i)
+            geom = monitor.get_geometry()
             
+            # Get monitor name from model or connector
+            monitor_name = monitor.get_model()
             if not monitor_name:
+                # Try to get connector name via properties if available
                 monitor_name = f"Monitor-{i}"
+            
+            # For multi-monitor setups, we need unique names
+            # Use the index if names would collide
+            if monitor_name in self.monitors:
+                monitor_name = f"{monitor_name}-{i}"
             
             self.monitors[monitor_name] = {
                 'index': i,
@@ -352,14 +362,95 @@ class ZoneGridWidget(Gtk.Grid):
             self.update_colors()
 
 
+class HelpDialog(Gtk.Dialog):
+    """Help dialog with usage information"""
+    
+    def __init__(self, parent):
+        Gtk.Dialog.__init__(
+            self,
+            title="fittsmon Help",
+            parent=parent,
+            flags=0
+        )
+        self.add_button("Close", Gtk.ResponseType.CLOSE)
+        self.set_default_size(500, 450)
+        
+        content = self.get_content_area()
+        content.set_margin_top(15)
+        content.set_margin_bottom(15)
+        content.set_margin_start(15)
+        content.set_margin_end(15)
+        
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        
+        help_label = Gtk.Label()
+        help_label.set_markup(self._get_help_text())
+        help_label.set_line_wrap(True)
+        help_label.set_xalign(0)
+        help_label.set_selectable(True)
+        
+        scroll.add(help_label)
+        content.pack_start(scroll, True, True, 0)
+        self.show_all()
+    
+    def _get_help_text(self):
+        return """<big><b>fittsmon - Screen Corner Actions</b></big>
+
+<b>What is fittsmon?</b>
+With fittsmon one can set mouse events on hotcorners and edges.
+
+<b>Zones</b>
+There are 8 hotspot zones around the screen: the 4 corners (TopLeft, TopRight, BottomLeft, BottomRight) and 4 edges (TopCenter, Left, Right, BottomCenter).
+
+<b>Events</b>
+Each zone can respond to different mouse events:
+
+  <b>Wheel Events:</b>
+  • <b>WheelUp / WheelDown</b> - Continuous scrolling (fires repeatedly)
+  • <b>WheelUpOnce / WheelDownOnce</b> - Single scroll (2 sec cooldown)
+  
+  <i>Note: WheelUp conflicts with WheelUpOnce, same for WheelDown. Only one can be active per zone.</i>
+
+  <b>Button Events:</b>
+  • <b>LeftButton</b> - Left mouse click
+  • <b>RightButton</b> - Right mouse click
+  • <b>MiddleButton</b> - Middle mouse click
+
+  <b>Motion Events:</b>
+  • <b>Enter</b> - Mouse enters the zone
+  • <b>Leave</b> - Mouse leaves the zone
+  
+  <i>⚠️ Warning: Enter/Leave events conflict with button clicks in the same zone. When you enter or leave a corner, you can't reliably click at the same time.</i>
+
+<b>Multi-Monitor Support</b>
+Each monitor can have its own independent hotspot configuration. Select a monitor from the dropdown to configure it.
+
+<b>Tips</b>
+• Use <b>Show Hotspots</b> to visualize active zones on all monitors
+• Use <b>Test</b> to try your command before saving
+• After editing, click <b>Restart</b> to apply changes to the running daemon
+
+<b>Example Commands</b>
+• Volume: <tt>amixer -D pulse set Master 5%+</tt>
+• Brightness: <tt>brightnessctl set +10%</tt>
+• Workspace: <tt>i3-msg workspace next</tt>
+• Application: <tt>rofi -show drun</tt>
+"""
+
+
 class FittsmonGUI:
-    # Only wheel events conflict
-    CONFLICT_PAIRS = {
+    # Wheel event conflicts (can't use both)
+    WHEEL_CONFLICT_PAIRS = {
         'WheelUp': 'WheelUpOnce',
         'WheelUpOnce': 'WheelUp',
         'WheelDown': 'WheelDownOnce',
         'WheelDownOnce': 'WheelDown'
     }
+    
+    # Enter/Leave conflict with button clicks
+    ENTER_LEAVE_EVENTS = {'Enter', 'Leave'}
+    BUTTON_EVENTS = {'LeftButton', 'RightButton', 'MiddleButton'}
     
     def __init__(self):
         self.config_dir = Path.home() / ".config/fittsmon"
@@ -371,6 +462,7 @@ class FittsmonGUI:
         self.hotspot_windows = []
         self.monitor_helper = MonitorHelper()
         self.daemon_was_running = False
+        self.is_restarting = False
         
         # 8 zones in correct order
         self.zones = [
@@ -475,8 +567,8 @@ class FittsmonGUI:
             self.config.add_section(section)
         
         # Auto-clear conflicting wheel events
-        if command and event in self.CONFLICT_PAIRS:
-            conflict_event = self.CONFLICT_PAIRS[event]
+        if command and event in self.WHEEL_CONFLICT_PAIRS:
+            conflict_event = self.WHEEL_CONFLICT_PAIRS[event]
             conflict_cmd = self.config.get(section, conflict_event, fallback="")
             if conflict_cmd:
                 print(f"[CONFIG] Auto-clearing: {section}.{conflict_event}")
@@ -486,12 +578,12 @@ class FittsmonGUI:
         self.config.set(section, event, command)
         print(f"[CONFIG] Set {section}.{event} = '{command}'")
     
-    def check_conflict(self, event):
+    def check_wheel_conflict(self, event):
         """Check if there's a wheel event conflict"""
-        if event not in self.CONFLICT_PAIRS:
+        if event not in self.WHEEL_CONFLICT_PAIRS:
             return None
         
-        conflict_event = self.CONFLICT_PAIRS[event]
+        conflict_event = self.WHEEL_CONFLICT_PAIRS[event]
         current_cmd = self.get_command(self.current_monitor, self.current_zone, event)
         conflict_cmd = self.get_command(self.current_monitor, self.current_zone, conflict_event)
         
@@ -499,8 +591,45 @@ class FittsmonGUI:
             return {
                 'event': event,
                 'conflict_event': conflict_event,
-                'conflict_value': conflict_cmd
+                'conflict_value': conflict_cmd,
+                'type': 'wheel'
             }
+        
+        return None
+    
+    def check_enter_leave_conflict(self, event):
+        """Check if Enter/Leave conflicts with button events in same zone"""
+        section = self.get_section_name(self.current_monitor, self.current_zone)
+        
+        # If selecting Enter or Leave, check for button events
+        if event in self.ENTER_LEAVE_EVENTS:
+            conflicting_buttons = []
+            for btn_event in self.BUTTON_EVENTS:
+                cmd = self.config.get(section, btn_event, fallback="")
+                if cmd:
+                    conflicting_buttons.append(btn_event)
+            
+            if conflicting_buttons:
+                return {
+                    'event': event,
+                    'conflict_events': conflicting_buttons,
+                    'type': 'enter_leave'
+                }
+        
+        # If selecting a button event, check for Enter/Leave
+        if event in self.BUTTON_EVENTS:
+            conflicting_motion = []
+            for motion_event in self.ENTER_LEAVE_EVENTS:
+                cmd = self.config.get(section, motion_event, fallback="")
+                if cmd:
+                    conflicting_motion.append(motion_event)
+            
+            if conflicting_motion:
+                return {
+                    'event': event,
+                    'conflict_events': conflicting_motion,
+                    'type': 'button_motion'
+                }
         
         return None
     
@@ -567,11 +696,52 @@ class FittsmonGUI:
             return False
     
     def restart_fittsmon(self):
-        """Restart fittsmon daemon"""
-        print("[DAEMON] Restarting fittsmon...")
+        """Restart fittsmon daemon with visual feedback"""
+        if self.is_restarting:
+            return False
+        
+        self.is_restarting = True
+        self.set_buttons_sensitive(False)
+        
+        # Phase 1: Stopping
+        self.set_status("Stopping", error=False, busy=True)
+        self.spinner.start()
+        
+        # Use idle_add to allow UI to update
+        GLib.timeout_add(100, self._restart_phase_kill)
+        return True
+    
+    def _restart_phase_kill(self):
+        """Kill phase of restart"""
         self.kill_fittsmon()
-        time.sleep(1)
-        return self.start_fittsmon()
+        GLib.timeout_add(500, self._restart_phase_start)
+        return False
+    
+    def _restart_phase_start(self):
+        """Start phase of restart"""
+        self.set_status("Starting", error=False, busy=True)
+        GLib.timeout_add(100, self._restart_phase_verify)
+        return False
+    
+    def _restart_phase_verify(self):
+        """Verify phase of restart"""
+        success = self.start_fittsmon()
+        self.spinner.stop()
+        self.is_restarting = False
+        self.set_buttons_sensitive(True)
+        
+        if success:
+            self.set_status("Ready", error=False)
+        else:
+            self.set_status("Failed to start", error=True)
+        
+        return False
+    
+    def set_buttons_sensitive(self, sensitive):
+        """Enable/disable action buttons during restart"""
+        self.restart_btn.set_sensitive(sensitive)
+        self.save_btn.set_sensitive(sensitive)
+        self.test_btn.set_sensitive(sensitive)
     
     def show_hotspot_windows(self):
         """Show hotspot windows for all monitors"""
@@ -618,6 +788,18 @@ class FittsmonGUI:
         .zone-inactive:hover {
             background-color: #BDBDBD;
         }
+        
+        .warning-box {
+            background-color: #FFF3E0;
+            border: 1px solid #FFB74D;
+            border-radius: 4px;
+            padding: 8px;
+            color: #5D4037;
+        }
+        
+        .warning-box label {
+            color: #5D4037;
+        }
         """
         css_provider.load_from_data(css.encode())
         context = Gtk.StyleContext()
@@ -631,7 +813,7 @@ class FittsmonGUI:
         """Setup GTK GUI"""
         self.window = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
         self.window.set_title("fittsmon")
-        self.window.set_default_size(850, 800)
+        self.window.set_default_size(850, 850)
         self.window.set_position(Gtk.WindowPosition.CENTER)
         self.window.connect("delete-event", self.on_window_close)
         
@@ -648,17 +830,32 @@ class FittsmonGUI:
         main_box.set_margin_end(15)
         self.window.add(main_box)
         
-        # Title
+        # Title with help button
+        title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        
         title = Gtk.Label()
         title.set_markup("<big><b>fittsmon action manager</b></big>\n<small>Screen Corner Hotspots</small>")
-        main_box.pack_start(title, False, False, 0)
+        title_box.pack_start(title, True, True, 0)
         
-        # Status - BIGGER AND BOLDER
+        help_btn = Gtk.Button(label="❓ Help")
+        help_btn.connect("clicked", self.on_help_clicked)
+        title_box.pack_end(help_btn, False, False, 0)
+        
+        main_box.pack_start(title_box, False, False, 0)
+        
+        # Status with spinner
+        status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        status_box.set_halign(Gtk.Align.CENTER)
+        
+        self.spinner = Gtk.Spinner()
+        status_box.pack_start(self.spinner, False, False, 0)
+        
         self.status_label = Gtk.Label()
         self.status_label.set_markup("<span size='large' weight='bold' foreground='green'>Ready</span>")
         self.status_label.set_line_wrap(True)
-        self.status_label.set_halign(Gtk.Align.CENTER)
-        main_box.pack_start(self.status_label, False, False, 0)
+        status_box.pack_start(self.status_label, False, False, 0)
+        
+        main_box.pack_start(status_box, False, False, 0)
         
         main_box.pack_start(Gtk.Separator(), False, False, 0)
         
@@ -714,7 +911,7 @@ class FittsmonGUI:
         self.command_entry.connect("changed", self.on_command_changed)
         main_box.pack_start(self.command_entry, False, False, 0)
         
-        # Warning box
+        # Warning box (for wheel conflicts)
         self.warning_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         self.warning_label = Gtk.Label()
         self.warning_label.set_line_wrap(True)
@@ -727,14 +924,25 @@ class FittsmonGUI:
         
         main_box.pack_start(self.warning_box, False, False, 0)
         
+        # Enter/Leave warning box (separate)
+        self.enter_leave_warning_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.enter_leave_warning_box.get_style_context().add_class("warning-box")
+        
+        self.enter_leave_warning_label = Gtk.Label()
+        self.enter_leave_warning_label.set_line_wrap(True)
+        self.enter_leave_warning_label.set_halign(Gtk.Align.START)
+        self.enter_leave_warning_box.pack_start(self.enter_leave_warning_label, False, False, 0)
+        
+        main_box.pack_start(self.enter_leave_warning_box, False, False, 0)
+        
         self.update_command_display()
         
         # Action buttons
         action_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         
-        test_btn = Gtk.Button(label="🧪 Test")
-        test_btn.connect("clicked", self.on_test_clicked)
-        action_box.pack_start(test_btn, True, True, 0)
+        self.test_btn = Gtk.Button(label="🧪 Test")
+        self.test_btn.connect("clicked", self.on_test_clicked)
+        action_box.pack_start(self.test_btn, True, True, 0)
         
         edit_btn = Gtk.Button(label="✏️  Edit File")
         edit_btn.connect("clicked", self.on_edit_clicked)
@@ -754,21 +962,25 @@ class FittsmonGUI:
         # Save & Restart button
         sr_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         
-        save_btn = Gtk.Button(label="💾 Save")
-        save_btn.set_size_request(-1, 40)
-        save_btn.get_style_context().add_class("suggested-action")
-        save_btn.connect("clicked", self.on_save_clicked)
-        sr_box.pack_start(save_btn, True, True, 0)
+        self.save_btn = Gtk.Button(label="💾 Save")
+        self.save_btn.set_size_request(-1, 40)
+        self.save_btn.get_style_context().add_class("suggested-action")
+        self.save_btn.connect("clicked", self.on_save_clicked)
+        sr_box.pack_start(self.save_btn, True, True, 0)
         
-        restart_btn = Gtk.Button(label="⟳ Restart")
-        restart_btn.set_size_request(-1, 40)
-        restart_btn.get_style_context().add_class("destructive-action")
-        restart_btn.connect("clicked", self.on_restart_clicked)
-        sr_box.pack_start(restart_btn, True, True, 0)
+        self.restart_btn = Gtk.Button(label="⟳ Restart")
+        self.restart_btn.set_size_request(-1, 40)
+        self.restart_btn.get_style_context().add_class("destructive-action")
+        self.restart_btn.connect("clicked", self.on_restart_clicked)
+        sr_box.pack_start(self.restart_btn, True, True, 0)
         
         main_box.pack_start(sr_box, False, False, 0)
         
         self.window.show_all()
+        
+        # Hide warning boxes initially (update_command_display will show if needed)
+        self.warning_box.hide()
+        self.enter_leave_warning_box.hide()
     
     def on_window_close(self, widget, event):
         """Handle window close - ensure daemon is still running if it was before"""
@@ -835,21 +1047,46 @@ class FittsmonGUI:
         # Update zone grid to show selected zone
         self.zone_grid.set_active_zone(self.current_zone)
         
-        self.show_conflict_warning()
+        self.show_conflict_warnings()
     
-    def show_conflict_warning(self):
-        """Show warning only for wheel conflicts"""
-        conflict = self.check_conflict(self.current_event)
+    def show_conflict_warnings(self):
+        """Show warnings for wheel conflicts and enter/leave conflicts"""
+        # Check wheel conflict
+        wheel_conflict = self.check_wheel_conflict(self.current_event)
         
-        if conflict:
+        if wheel_conflict:
             msg = (
-                f"⚠️  <b>{conflict['conflict_event']}</b> already set!\n"
-                f"Can't use both <b>{conflict['event']}</b> and <b>{conflict['conflict_event']}</b>"
+                f"⚠️  <b>{wheel_conflict['conflict_event']}</b> already set!\n"
+                f"Can't use both <b>{wheel_conflict['event']}</b> and <b>{wheel_conflict['conflict_event']}</b>"
             )
             self.warning_label.set_markup(msg)
             self.warning_box.show_all()
         else:
             self.warning_box.hide()
+        
+        # Check enter/leave conflict
+        enter_leave_conflict = self.check_enter_leave_conflict(self.current_event)
+        
+        if enter_leave_conflict:
+            conflict_list = ", ".join(f"<b>{e}</b>" for e in enter_leave_conflict['conflict_events'])
+            
+            if enter_leave_conflict['type'] == 'enter_leave':
+                msg = (
+                    f"<span foreground='#5D4037'>⚠️  <b>Warning:</b> This zone has button clicks: {conflict_list}\n"
+                    f"<small>Enter/Leave events may not work reliably with button clicks in the same zone.\n"
+                    f"When entering/leaving the corner, button clicks can fire unexpectedly.</small></span>"
+                )
+            else:
+                msg = (
+                    f"<span foreground='#5D4037'>⚠️  <b>Warning:</b> This zone has motion events: {conflict_list}\n"
+                    f"<small>Button clicks may not work reliably with Enter/Leave in the same zone.\n"
+                    f"Consider using only one type of event per zone.</small></span>"
+                )
+            
+            self.enter_leave_warning_label.set_markup(msg)
+            self.enter_leave_warning_box.show_all()
+        else:
+            self.enter_leave_warning_box.hide()
     
     def on_monitor_changed(self, widget):
         idx = self.monitor_combo.get_active()
@@ -868,16 +1105,16 @@ class FittsmonGUI:
         command = self.command_entry.get_text()
         self.set_command(self.current_monitor, self.current_zone, self.current_event, command)
         self.save_config()
-        self.show_conflict_warning()
+        self.show_conflict_warnings()
     
     def on_auto_clear_clicked(self, widget):
         """Auto-clear conflicting wheel event"""
-        conflict = self.check_conflict(self.current_event)
+        conflict = self.check_wheel_conflict(self.current_event)
         if conflict:
             section = self.get_section_name(self.current_monitor, self.current_zone)
             self.config.remove_option(section, conflict['conflict_event'])
             self.save_config()
-            self.show_conflict_warning()
+            self.show_conflict_warnings()
             self.set_status(f"Cleared {conflict['conflict_event']}", error=False)
     
     def on_test_clicked(self, widget):
@@ -917,17 +1154,26 @@ class FittsmonGUI:
     
     def on_restart_clicked(self, widget):
         """Restart daemon"""
-        self.set_status("Restarting", error=False)
-        success = self.restart_fittsmon()
-        if success:
-            self.set_status("Ready", error=False)
-        else:
-            self.set_status("Error restarting", error=True)
+        self.restart_fittsmon()
     
-    def set_status(self, message, error=False):
+    def on_help_clicked(self, widget):
+        """Show help dialog"""
+        dialog = HelpDialog(self.window)
+        dialog.run()
+        dialog.destroy()
+    
+    def set_status(self, message, error=False, busy=False):
         """Display status message - bigger and bolder"""
-        color = "red" if error else "green"
-        symbol = "✗" if error else "✓"
+        if busy:
+            color = "orange"
+            symbol = "⏳"
+        elif error:
+            color = "red"
+            symbol = "✗"
+        else:
+            color = "green"
+            symbol = "✓"
+        
         self.status_label.set_markup(
             f"<span size='large' weight='bold' foreground='{color}'>"
             f"{symbol} {message}"
