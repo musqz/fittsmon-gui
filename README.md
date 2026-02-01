@@ -42,8 +42,10 @@ sudo ./uninstall.sh
 # Manpage
 
 ```
+# Direct access of man page
+man ./fittsmon-gui.1
+# After installation
 man fittsmon-gui
-man fittsmon
 ```
 
 # Supported languages
