@@ -15,8 +15,6 @@ What this repository contains
 - `uninstall.sh` — removes installed files
 - `fittsmon-gui.1` — man page (installed gzipped)
 - `icons/` — application icon(s) (hicolor theme layout)
-- `README_INSTALL.md` — quick install instructions
-
 
 
 Quick usage
