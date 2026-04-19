@@ -489,14 +489,14 @@ class HotspotWindow(Gtk.Window):
     """Individual hotspot detail window"""
     
     ZONE_INFO = {
-        'TopLeft': {'pos': (0, 0), 'emoji': '↖️'},
-        'TopCenter': {'pos': (0.5, 0), 'emoji': '⬆️'},
-        'TopRight': {'pos': (1, 0), 'emoji': '↗️'},
-        'Left': {'pos': (0, 0.5), 'emoji': '⬅️'},
-        'Right': {'pos': (1, 0.5), 'emoji': '➡️'},
-        'BottomLeft': {'pos': (0, 1), 'emoji': '↙️'},
-        'BottomCenter': {'pos': (0.5, 1), 'emoji': '⬇️'},
-        'BottomRight': {'pos': (1, 1), 'emoji': '↘️'},
+        'TopLeft': {'pos': (0, 0), 'emoji': '↖'},
+        'TopCenter': {'pos': (0.5, 0), 'emoji': '↑'},
+        'TopRight': {'pos': (1, 0), 'emoji': '↗'},
+        'Left': {'pos': (0, 0.5), 'emoji': '←'},
+        'Right': {'pos': (1, 0.5), 'emoji': '→'},
+        'BottomLeft': {'pos': (0, 1), 'emoji': '↙'},
+        'BottomCenter': {'pos': (0.5, 1), 'emoji': '↓'},
+        'BottomRight': {'pos': (1, 1), 'emoji': '↘'},
     }
     
     def __init__(self, zone, monitor_name, commands_dict, monitor_geom):
@@ -654,14 +654,14 @@ class ZoneGridWidget(Gtk.Grid):
     """Visual 8-zone grid selector"""
     
     ZONE_INFO = {
-        'TopLeft': {'emoji': '↖️', 'pos': (0, 0)},
-        'TopCenter': {'emoji': '⬆️', 'pos': (1, 0)},
-        'TopRight': {'emoji': '↗️', 'pos': (2, 0)},
-        'Left': {'emoji': '⬅️', 'pos': (0, 1)},
-        'Right': {'emoji': '➡️', 'pos': (2, 1)},
-        'BottomLeft': {'emoji': '↙️', 'pos': (0, 2)},
-        'BottomCenter': {'emoji': '⬇️', 'pos': (1, 2)},
-        'BottomRight': {'emoji': '↘️', 'pos': (2, 2)},
+        'TopLeft': {'emoji': '↖', 'pos': (0, 0)},
+        'TopCenter': {'emoji': '↑', 'pos': (1, 0)},
+        'TopRight': {'emoji': '↗', 'pos': (2, 0)},
+        'Left': {'emoji': '←', 'pos': (0, 1)},
+        'Right': {'emoji': '→', 'pos': (2, 1)},
+        'BottomLeft': {'emoji': '↙', 'pos': (0, 2)},
+        'BottomCenter': {'emoji': '↓', 'pos': (1, 2)},
+        'BottomRight': {'emoji': '↘', 'pos': (2, 2)},
     }
     
     def __init__(self, zones, callback):
