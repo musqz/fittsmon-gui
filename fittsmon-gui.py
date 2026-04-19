@@ -32,14 +32,14 @@ TRANSLATIONS = {
         'primary': '[PRIMARY]',
         
         # Buttons
-        'help': '❓ Help',
-        'test': '🧪 Test',
-        'edit_file': '✏️  Edit File',
-        'show_hotspots': '👁️  Show Hotspots',
-        'hide_hotspots': '👁️  Hide Hotspots',
-        'save': '💾 Save',
-        'restart': '⟳ Restart',
-        'clear_conflict': '✓ Clear Conflict',
+        'help': 'Help',
+        'test': 'Test',
+        'edit_file': 'Edit File',
+        'show_hotspots': 'Show Hotspots',
+        'hide_hotspots': 'Hide Hotspots',
+        'save': 'Save',
+        'restart': 'Restart',
+        'clear_conflict': 'Clear Conflict',
         'close': 'Close',
         
         # Status messages
