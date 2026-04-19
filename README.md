@@ -37,7 +37,7 @@ mandb: can't resolve man3/Xau.__libmansuffix__
 mandb: warning: /usr/share/man/man3/XauLockAuth.3.gz: bad symlink or ROFF `.so' request
 ```
 
-# ARCH INstallation
+# Arch installation
 
 ```
 git clone https://github.com/musqz/fittsmon-gui.git
