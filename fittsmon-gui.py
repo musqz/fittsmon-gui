@@ -790,8 +790,8 @@ class FittsmonGUI:
         self.detect_monitors()
         self.load_config()
         self.check_daemon_status()
-        self.setup_gui()
         self.setup_styles()
+        self.setup_gui()
     
     def detect_monitors(self):
         try:
@@ -1033,17 +1033,21 @@ class FittsmonGUI:
         css_provider = Gtk.CssProvider()
         css = """
         .zone-active {
+            background-image: none;
             background-color: #2196F3;
             color: white;
         }
         .zone-inactive {
+            background-image: none;
             background-color: #E0E0E0;
             color: #333333;
         }
         .zone-active:hover {
+            background-image: none;
             background-color: #1976D2;
         }
         .zone-inactive:hover {
+            background-image: none;
             background-color: #BDBDBD;
         }
         .warning-box {
