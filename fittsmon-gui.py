@@ -12,6 +12,13 @@ import os
 import time
 from pathlib import Path
 
+_VERSION = "__VERSION__"
+if _VERSION.startswith("__"):
+    try:
+        _VERSION = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "VERSION")).read().strip()
+    except OSError:
+        _VERSION = "dev"
+
 
 # =============================================================================
 # TRANSLATIONS
@@ -749,6 +756,22 @@ class HelpDialog(Gtk.Dialog):
         
         scroll.add(help_label)
         content.pack_start(scroll, True, True, 0)
+
+        about_sep = Gtk.Separator()
+        about_sep.set_margin_top(10)
+        about_sep.set_margin_bottom(10)
+        content.pack_start(about_sep, False, False, 0)
+
+        about_label = Gtk.Label()
+        about_label.set_markup(
+            '<big><b>fittsmon-gui</b></big> v{version}\n'
+            '<a href="https://github.com/musqz/fittsmon-gui">github.com/musqz/fittsmon-gui</a>\n'
+            'musqz · MIT'.format(version=GLib.markup_escape_text(_VERSION))
+        )
+        about_label.set_justify(Gtk.Justification.CENTER)
+        about_label.set_selectable(True)
+        content.pack_start(about_label, False, False, 0)
+
         self.show_all()
 
 
