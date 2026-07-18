@@ -54,12 +54,6 @@ cd fittsmon-gui/packaging
 makepkg -si
 ```
 
-Or, once published to the AUR:
-
-```bash
-yay -S fittsmon-gui
-```
-
 # Manpage
 
 ```
