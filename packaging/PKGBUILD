@@ -14,6 +14,11 @@ optdepends=(
 source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
 sha256sums=('f4427096843438ed1e2211034e2b5f6a038cf7cf9a174fa2c77fdd7812526aa9')
 
+prepare() {
+    cd "${srcdir}/${pkgname}-${pkgver}"
+    sed -i "s/__VERSION__/${pkgver}/" fittsmon-gui.py
+}
+
 package() {
     cd "${srcdir}/${pkgname}-${pkgver}"
     make install DESTDIR="${pkgdir}" PREFIX=/usr
