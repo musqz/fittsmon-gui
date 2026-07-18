@@ -24,16 +24,17 @@ install:
 	install -Dm755 $(SCRIPT)   $(DESTDIR)$(BINDIR)/$(TARGET)
 	install -Dm644 $(MAN_PAGE) $(DESTDIR)$(MANDIR)/$(MAN_PAGE)
 	gzip -nf                   $(DESTDIR)$(MANDIR)/$(MAN_PAGE)
-	install -Dm644 /dev/stdin  $(DESTDIR)$(APPSDIR)/$(TARGET).desktop <<EOF
-[Desktop Entry]
-Name=fittsmon-gui
-Comment=Configure fittsmon screen corner hotspots
-Exec=$(BINDIR)/$(TARGET)
-Terminal=false
-Type=Application
-Categories=Utility;
-Icon=$(TARGET)
-EOF
+	@mkdir -p $(DESTDIR)$(APPSDIR)
+	printf '%s\n' \
+		'[Desktop Entry]' \
+		'Name=fittsmon-gui' \
+		'Comment=Configure fittsmon screen corner hotspots' \
+		'Exec=$(BINDIR)/$(TARGET)' \
+		'Terminal=false' \
+		'Type=Application' \
+		'Categories=Utility;' \
+		'Icon=$(TARGET)' > $(DESTDIR)$(APPSDIR)/$(TARGET).desktop
+	chmod 644 $(DESTDIR)$(APPSDIR)/$(TARGET).desktop
 	@if [ -f $(ICON_SVG) ]; then \
 	  install -Dm644 $(ICON_SVG) \
 	    $(DESTDIR)$(ICONDIR)/scalable/apps/$(TARGET).svg; \

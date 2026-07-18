@@ -43,6 +43,23 @@ mandb: warning: /usr/share/man/man3/XauLockAuth.3.gz: bad symlink or ROFF `.so' 
 chmod +x uninstall.sh
 sudo ./uninstall.sh
 ```
+
+# Arch installation
+
+Build and install with `makepkg` from `packaging/`:
+
+```bash
+git clone https://github.com/musqz/fittsmon-gui.git
+cd fittsmon-gui/packaging
+makepkg -si
+```
+
+Or, once published to the AUR:
+
+```bash
+yay -S fittsmon-gui
+```
+
 # Manpage
 
 ```
