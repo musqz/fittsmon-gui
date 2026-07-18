@@ -11,6 +11,6 @@ pkgbase = fittsmon-gui
 	optdepends = fittsmon: screen-corner hotspot daemon this GUI configures
 	optdepends = arandr: set primary monitor (required for correct config file detection)
 	source = fittsmon-gui-1.0.1.tar.gz::https://github.com/musqz/fittsmon-gui/archive/refs/tags/v1.0.1.tar.gz
-	sha256sums = SKIP
+	sha256sums = 8d7f87554a839395b682d3b2b009e89952a788450e523ae4670d99c13d9f440b
 
 pkgname = fittsmon-gui
