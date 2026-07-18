@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=fittsmon-gui
+Comment=Configure fittsmon screen corner hotspots
+Exec=/usr/bin/fittsmon-gui
+Terminal=false
+Type=Application
+Categories=Utility;
+Icon=fittsmon-gui
