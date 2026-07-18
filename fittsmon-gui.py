@@ -96,39 +96,10 @@ TRANSLATIONS = {
         'help_title': 'fittsmon Help',
         'help_text': """<big><b>fittsmon - Screen Corner Actions</b></big>
 
-<b>What is fittsmon?</b>
-With fittsmon one can set mouse events on hotcorners and edges.
+<b>Conflicts</b>
+<i>Note: WheelUp conflicts with WheelUpOnce, same for WheelDown. Only one can be active per zone.</i>
 
-<b>Zones</b>
-There are 8 hotspot zones around the screen: the 4 corners (TopLeft, TopRight, BottomLeft, BottomRight) and 4 edges (TopCenter, Left, Right, BottomCenter).
-
-<b>Events</b>
-Each zone can respond to different mouse events:
-
-  <b>Wheel Events:</b>
-  • <b>WheelUp / WheelDown</b> - Continuous scrolling (fires repeatedly)
-  • <b>WheelUpOnce / WheelDownOnce</b> - Single scroll (2 sec cooldown)
-  
-  <i>Note: WheelUp conflicts with WheelUpOnce, same for WheelDown. Only one can be active per zone.</i>
-
-  <b>Button Events:</b>
-  • <b>LeftButton</b> - Left mouse click
-  • <b>RightButton</b> - Right mouse click
-  • <b>MiddleButton</b> - Middle mouse click
-
-  <b>Motion Events:</b>
-  • <b>Enter</b> - Mouse enters the zone
-  • <b>Leave</b> - Mouse leaves the zone
-  
-  <i>⚠️ Warning: Enter/Leave events conflict with button clicks in the same zone. When you enter or leave a corner, you can't reliably click at the same time.</i>
-
-<b>Multi-Monitor Support</b>
-Each monitor can have its own independent hotspot configuration. Select a monitor from the dropdown to configure it.
-
-<b>Tips</b>
-• Use <b>Show Hotspots</b> to visualize active zones on all monitors
-• Use <b>Test</b> to try your command before saving
-• After editing, click <b>Restart</b> to apply changes to the running daemon
+<i>⚠️ Warning: Enter/Leave events conflict with button clicks in the same zone. When you enter or leave a corner, you can't reliably click at the same time.</i>
 
 <b>Example Commands</b>
 • Volume: <tt>amixer -D pulse set Master 5%+</tt>
@@ -209,39 +180,10 @@ Each monitor can have its own independent hotspot configuration. Select a monito
         'help_title': 'Ayuda de fittsmon',
         'help_text': """<big><b>fittsmon - Acciones en Esquinas de Pantalla</b></big>
 
-<b>¿Qué es fittsmon?</b>
-Con fittsmon se pueden configurar eventos del ratón en esquinas y bordes activos.
+<b>Conflictos</b>
+<i>Nota: WheelUp conflictúa con WheelUpOnce, igual para WheelDown. Solo uno puede estar activo por zona.</i>
 
-<b>Zonas</b>
-Hay 8 zonas activas alrededor de la pantalla: las 4 esquinas (TopLeft, TopRight, BottomLeft, BottomRight) y 4 bordes (TopCenter, Left, Right, BottomCenter).
-
-<b>Eventos</b>
-Cada zona puede responder a diferentes eventos del ratón:
-
-  <b>Eventos de Rueda:</b>
-  • <b>WheelUp / WheelDown</b> - Scroll continuo (se repite)
-  • <b>WheelUpOnce / WheelDownOnce</b> - Scroll único (2 seg de espera)
-  
-  <i>Nota: WheelUp conflictúa con WheelUpOnce, igual para WheelDown. Solo uno puede estar activo por zona.</i>
-
-  <b>Eventos de Botón:</b>
-  • <b>LeftButton</b> - Clic izquierdo
-  • <b>RightButton</b> - Clic derecho
-  • <b>MiddleButton</b> - Clic central
-
-  <b>Eventos de Movimiento:</b>
-  • <b>Enter</b> - El ratón entra en la zona
-  • <b>Leave</b> - El ratón sale de la zona
-  
-  <i>⚠️ Advertencia: Los eventos Enter/Leave conflictúan con clics de botón en la misma zona. Al entrar o salir de una esquina, no se puede hacer clic de forma fiable.</i>
-
-<b>Soporte Multi-Monitor</b>
-Cada monitor puede tener su propia configuración independiente. Seleccione un monitor del menú desplegable para configurarlo.
-
-<b>Consejos</b>
-• Use <b>Mostrar Zonas</b> para visualizar las zonas activas en todos los monitores
-• Use <b>Probar</b> para probar su comando antes de guardar
-• Después de editar, haga clic en <b>Reiniciar</b> para aplicar los cambios
+<i>⚠️ Advertencia: Los eventos Enter/Leave conflictúan con clics de botón en la misma zona. Al entrar o salir de una esquina, no se puede hacer clic de forma fiable.</i>
 
 <b>Comandos de Ejemplo</b>
 • Volumen: <tt>amixer -D pulse set Master 5%+</tt>
@@ -322,39 +264,10 @@ Cada monitor puede tener su propia configuración independiente. Seleccione un m
         'help_title': 'Pomoc fittsmon',
         'help_text': """<big><b>fittsmon - Akcje w Rogach Ekranu</b></big>
 
-<b>Co to jest fittsmon?</b>
-Za pomocą fittsmon można ustawić zdarzenia myszy na aktywnych rogach i krawędziach.
+<b>Konflikty</b>
+<i>Uwaga: WheelUp konfliktuje z WheelUpOnce, podobnie WheelDown. Tylko jedno może być aktywne w strefie.</i>
 
-<b>Strefy</b>
-Jest 8 aktywnych stref wokół ekranu: 4 rogi (TopLeft, TopRight, BottomLeft, BottomRight) i 4 krawędzie (TopCenter, Left, Right, BottomCenter).
-
-<b>Zdarzenia</b>
-Każda strefa może reagować na różne zdarzenia myszy:
-
-  <b>Zdarzenia Kółka:</b>
-  • <b>WheelUp / WheelDown</b> - Ciągłe przewijanie (powtarza się)
-  • <b>WheelUpOnce / WheelDownOnce</b> - Pojedyncze przewinięcie (2 sek odstępu)
-  
-  <i>Uwaga: WheelUp konfliktuje z WheelUpOnce, podobnie WheelDown. Tylko jedno może być aktywne w strefie.</i>
-
-  <b>Zdarzenia Przycisków:</b>
-  • <b>LeftButton</b> - Lewy przycisk myszy
-  • <b>RightButton</b> - Prawy przycisk myszy
-  • <b>MiddleButton</b> - Środkowy przycisk myszy
-
-  <b>Zdarzenia Ruchu:</b>
-  • <b>Enter</b> - Mysz wchodzi w strefę
-  • <b>Leave</b> - Mysz opuszcza strefę
-  
-  <i>⚠️ Uwaga: Zdarzenia Enter/Leave konfliktują z kliknięciami w tej samej strefie. Przy wchodzeniu lub wychodzeniu z rogu nie można niezawodnie klikać.</i>
-
-<b>Obsługa Wielu Monitorów</b>
-Każdy monitor może mieć własną niezależną konfigurację. Wybierz monitor z listy rozwijanej, aby go skonfigurować.
-
-<b>Wskazówki</b>
-• Użyj <b>Pokaż Strefy</b> aby zobaczyć aktywne strefy na wszystkich monitorach
-• Użyj <b>Testuj</b> aby wypróbować polecenie przed zapisaniem
-• Po edycji kliknij <b>Restart</b> aby zastosować zmiany
+<i>⚠️ Uwaga: Zdarzenia Enter/Leave konfliktują z kliknięciami w tej samej strefie. Przy wchodzeniu lub wychodzeniu z rogu nie można niezawodnie klikać.</i>
 
 <b>Przykładowe Polecenia</b>
 • Głośność: <tt>amixer -D pulse set Master 5%+</tt>
