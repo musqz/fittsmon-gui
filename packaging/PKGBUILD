@@ -12,7 +12,7 @@ optdepends=(
     'arandr: set primary monitor (required for correct config file detection)'
 )
 source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('99c12cf59ef075bce5e7274e360bce779dd84c680b1052a1ea53910dcf78917e')
 
 prepare() {
     cd "${srcdir}/${pkgname}-${pkgver}"
