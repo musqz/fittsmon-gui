@@ -11,6 +11,6 @@ pkgbase = fittsmon-gui
 	depends = fittsmon
 	optdepends = arandr: set primary monitor (required for correct config file detection)
 	source = fittsmon-gui-1.0.5.tar.gz::https://github.com/musqz/fittsmon-gui/archive/refs/tags/v1.0.5.tar.gz
-	sha256sums = SKIP
+	sha256sums = 8ffe99737b77e5c6434fbc30c5a3a12537840fa1a76176439e0e93de0ef5e0af
 
 pkgname = fittsmon-gui
