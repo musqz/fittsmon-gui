@@ -707,6 +707,7 @@ class FittsmonGUI:
         self.monitors = []
         self.config = ConfigParser()
         self.hotspot_windows = []
+        self.pending_status = None
         self.monitor_helper = MonitorHelper()
         self.daemon_was_running = False
         self.is_restarting = False
@@ -758,8 +759,12 @@ class FittsmonGUI:
         if self.config_file.exists():
             print(f"[CONFIG] Loading: {self.config_file}")
             self.config.read(self.config_file)
+        elif self.monitors:
+            print(f"[CONFIG] File not found - creating default from detected displays")
+            self.save_config()
         else:
-            print(f"[CONFIG] File not found - will create on save")
+            print(f"[CONFIG] File not found - no monitors detected, skipping default config creation")
+            self.set_status(f"{_('status_error')}: no monitors detected", error=True)
     
     def save_config(self):
         try:
@@ -1044,9 +1049,15 @@ class FittsmonGUI:
         status_box.pack_start(self.spinner, False, False, 0)
         
         self.status_label = Gtk.Label()
-        self.status_label.set_markup(f"<span size='large' weight='bold' foreground='green'>✓ {_('status_ready')}</span>")
         self.status_label.set_line_wrap(True)
         status_box.pack_start(self.status_label, False, False, 0)
+
+        if self.pending_status is not None:
+            message, error, busy = self.pending_status
+            self.pending_status = None
+            self.set_status(message, error=error, busy=busy)
+        else:
+            self.set_status(_('status_ready'), error=False)
         
         main_box.pack_start(status_box, False, False, 0)
         main_box.pack_start(Gtk.Separator(), False, False, 0)
@@ -1323,6 +1334,9 @@ class FittsmonGUI:
         dialog.destroy()
     
     def set_status(self, message, error=False, busy=False):
+        if not hasattr(self, 'status_label'):
+            self.pending_status = (message, error, busy)
+            return
         if busy:
             color = "orange"
             symbol = "⏳"

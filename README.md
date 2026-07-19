@@ -99,6 +99,8 @@ fittsmon --monitor arg arg
 Config location:
 
 - User configuration is saved to `~/.config/fittsmon/fittsmonrc`.
+- On first launch, if this file doesn't exist yet, it's created automatically from your detected displays — no need to click Save and Start before Edit works.
+- Click **Edit** any time to open the config file and confirm your monitors were detected correctly (check the section names match your primary/secondary displays).
 
 **Notes** (explicit paths)
 
