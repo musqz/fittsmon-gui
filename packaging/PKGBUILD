@@ -1,6 +1,6 @@
 # Maintainer: Eric Bakker <musqz at mf dot com>
 pkgname=fittsmon-gui
-pkgver=1.0.4
+pkgver=1.0.5
 pkgrel=1
 pkgdesc="Lightweight GTK3 GUI to configure fittsmon screen-corner hotspots"
 arch=('any')
@@ -11,7 +11,7 @@ optdepends=(
     'arandr: set primary monitor (required for correct config file detection)'
 )
 source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('38a0935f7b189fe2af2818f23db448f5a0b8d50da15a070f3b8b84b4b0634d74')
+sha256sums=('SKIP')
 
 prepare() {
     cd "${srcdir}/${pkgname}-${pkgver}"
