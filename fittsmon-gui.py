@@ -759,7 +759,8 @@ class FittsmonGUI:
             print(f"[CONFIG] Loading: {self.config_file}")
             self.config.read(self.config_file)
         else:
-            print(f"[CONFIG] File not found - will create on save")
+            print(f"[CONFIG] File not found - creating default from detected displays")
+            self.save_config()
     
     def save_config(self):
         try:
@@ -1323,6 +1324,8 @@ class FittsmonGUI:
         dialog.destroy()
     
     def set_status(self, message, error=False, busy=False):
+        if not hasattr(self, 'status_label'):
+            return
         if busy:
             color = "orange"
             symbol = "⏳"
