@@ -63,4 +63,12 @@ icons/scalable/icons.cache
 icons/**/icons.cache
 .aider*
 CLAUDE.md
+claude.md
 .bashtask
+
+# makepkg build artifacts
+packaging/src/
+packaging/pkg/
+packaging/*.pkg.tar.zst
+packaging/*.pkg.tar.xz
+packaging/*.tar.gz
