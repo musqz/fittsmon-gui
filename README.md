@@ -1,3 +1,6 @@
+> **This repository has moved to Codeberg: https://codeberg.org/linux-bird/fittsmon-gui**
+> It is archived here. Please use Codeberg for issues and pull requests.
+
 ![Menu preview](images/menu.jpg)
 
 ![Overview](images/overview.jpg)
