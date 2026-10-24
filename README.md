@@ -2,7 +2,7 @@
 
 ![Overview](images/overview.jpg)
 
-[fittsmon-gui & picom](https://codeberg.org/linux-bird/fittsmon-gui/src/branch/main/images/picom-trans-round-corners.jpg)
+[fittsmon-gui & picom](https://github.com/musqz/fittsmon-gui/blob/main/images/picom-trans-round-corners.jpg)
 
 # fittsmon-gui
 
@@ -49,7 +49,7 @@ sudo ./uninstall.sh
 Build and install with `makepkg` from `packaging/`:
 
 ```bash
-git clone https://codeberg.org/linux-bird/fittsmon-gui.git
+git clone https://github.com/musqz/fittsmon-gui.git
 cd fittsmon-gui/packaging
 makepkg -si
 ```
@@ -126,12 +126,12 @@ If you install with `PREFIX=/usr`, files will be placed under `/usr` instead:
 - Install `fittsmon` from the upstream repository:
 
 ```bash
-git clone https://codeberg.org/linux-bird/fittsmon.git
+git clone https://github.com/musqz/fittsmon.git
 cd fittsmon
 # Follow the project README to build/install fittsmon
 ```
 
-Project repository (fittsmon): https://codeberg.org/linux-bird/fittsmon
+Project repository (fittsmon): https://github.com/musqz/fittsmon
 
 ### Disclaimer
 
